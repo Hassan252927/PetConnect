@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPost } from '../../store/postSlice';
 import { Pet } from '../../store/petSlice';
+import ImageUpload from '../common/ImageUpload';
+import { simulateImageUpload } from '../../services/uploadService';
 
 interface PostFormProps {
   onSuccess?: () => void;
@@ -12,15 +14,25 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.user);
   const { pets } = useAppSelector((state) => state.pet);
-  const { isLoading: isPostLoading, error } = useAppSelector((state) => state.post);
+  const { isLoading: isPostLoading, error: postError } = useAppSelector((state) => state.post);
   
   const [caption, setCaption] = useState('');
   const [media, setMedia] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [petImage, setPetImage] = useState<string>('');
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [createPetMode, setCreatePetMode] = useState(false);
   const [newPetName, setNewPetName] = useState('');
   const [newPetAnimal, setNewPetAnimal] = useState('');
   const [newPetBreed, setNewPetBreed] = useState('');
+  const [newPetImageFile, setNewPetImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // ... existing code ...
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +40,23 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
     if (!currentUser || !selectedPet) return;
     
     try {
+      setIsUploading(true);
+      setUploadError('');
+      
+      let finalMediaUrl = media;
+      
+      // If we have a new media file, upload it
+      if (mediaFile) {
+        try {
+          // In a real app, use uploadImage instead of simulateImageUpload
+          finalMediaUrl = await simulateImageUpload(mediaFile);
+        } catch (error) {
+          setUploadError('Failed to upload media. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+      
       const postData = {
         petID: selectedPet._id,
         userID: currentUser._id,
@@ -35,7 +64,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
         petImage: selectedPet.image,
         username: currentUser.username,
         userProfilePic: currentUser.profilePic,
-        media: media || 'https://via.placeholder.com/500',
+        media: finalMediaUrl,
         caption,
         animal: selectedPet.animal,
         breed: selectedPet.breed,
@@ -48,17 +77,20 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error('Failed to create post', error);
+    } finally {
+      setIsUploading(false);
     }
   };
   
-  // For a real app, implement an image upload functionality
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In a real app, you'd upload the file to a server and get the URL
-      // For this example, we'll use a placeholder
-      setMedia('https://via.placeholder.com/500');
-    }
+  const handleMediaSelected = (file: File, previewUrl: string) => {
+    setMediaFile(file);
+    setMedia(previewUrl);
+    setUploadError('');
+  };
+  
+  const handlePetImageSelected = (file: File, previewUrl: string) => {
+    setNewPetImageFile(file);
+    setPetImage(previewUrl);
   };
   
   // List of animal types for the dropdown
@@ -110,6 +142,48 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
   // Get breeds based on selected animal
   const getBreeds = (animal: string) => {
     return breedsByAnimal[animal] || ['Other'];
+  };
+  
+  const handleAddNewPet = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setIsUploading(true);
+      
+      let petImageUrl = 'https://via.placeholder.com/150';
+      
+      // If we have a new image file, upload it
+      if (newPetImageFile) {
+        try {
+          // In a real app, use uploadImage instead of simulateImageUpload
+          petImageUrl = await simulateImageUpload(newPetImageFile);
+        } catch (error) {
+          setUploadError('Failed to upload pet image. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+      
+      // In a real app, you'd create the pet via API
+      // For this example, we'll simulate creating a pet
+      const newPet: Pet = {
+        _id: `pet-${Date.now()}`,
+        userID: currentUser._id,
+        name: newPetName,
+        animal: newPetAnimal,
+        breed: newPetBreed,
+        image: petImageUrl,
+        posts: [],
+      };
+      
+      setSelectedPet(newPet);
+      setCreatePetMode(false);
+    } catch (error) {
+      console.error('Failed to add pet', error);
+      setUploadError('Failed to add pet. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   return (
@@ -223,59 +297,37 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
               </div>
               
               <div>
-                <label htmlFor="petImage" className="block text-gray-700 font-medium mb-2">
+                <label className="block text-gray-700 font-medium mb-2">
                   Pet Photo
                 </label>
-                <input
-                  type="file"
-                  id="petImage"
-                  accept="image/*"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                <ImageUpload
+                  onImageSelected={handlePetImageSelected}
+                  label="Upload Pet Photo"
                 />
               </div>
             </div>
             
             <button
               type="button"
-              onClick={() => {
-                // In a real app, you'd create the pet via API
-                // For this example, we'll simulate creating a pet
-                const newPet: Pet = {
-                  _id: `pet-${Date.now()}`,
-                  userID: currentUser?._id || '',
-                  name: newPetName,
-                  animal: newPetAnimal,
-                  breed: newPetBreed,
-                  image: 'https://via.placeholder.com/150',
-                  posts: [],
-                };
-                setSelectedPet(newPet);
-                setCreatePetMode(false);
-              }}
-              disabled={!newPetName || !newPetAnimal || !newPetBreed}
+              onClick={handleAddNewPet}
+              disabled={!newPetName || !newPetAnimal || !newPetBreed || isUploading}
               className="mt-4 btn-secondary"
             >
-              Add Pet
+              {isUploading ? 'Adding...' : 'Add Pet'}
             </button>
           </div>
         )}
         
         <div className="mb-4">
-          <label htmlFor="media" className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-2">
             Photo/Video
           </label>
-          <input
-            type="file"
-            id="media"
-            accept="image/*,video/*"
-            onChange={handleImageChange}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            required
+          <ImageUpload
+            onImageSelected={handleMediaSelected}
+            label="Upload Photo/Video"
           />
-          {media && (
-            <div className="mt-2">
-              <img src={media} alt="Preview" className="h-32 object-cover rounded-md" />
-            </div>
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
           )}
         </div>
         
@@ -312,10 +364,10 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
           )}
           <button
             type="submit"
-            disabled={isPostLoading || !selectedPet || !media || !caption.trim()}
+            disabled={isPostLoading || isUploading || !selectedPet || !media || !caption.trim()}
             className="btn-primary"
           >
-            {isPostLoading ? 'Posting...' : 'Share Post'}
+            {isPostLoading || isUploading ? 'Posting...' : 'Share Post'}
           </button>
         </div>
       </form>

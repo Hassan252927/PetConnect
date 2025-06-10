@@ -9,6 +9,8 @@ export interface Pet {
   breed: string;
   image: string;
   posts: string[];
+  age?: string;
+  size?: string;
 }
 
 interface PetState {

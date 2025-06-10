@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPet, Pet } from '../../store/petSlice';
+import ImageUpload from '../common/ImageUpload';
+import { simulateImageUpload } from '../../services/uploadService';
 
 interface PetFormProps {
   initialData?: Partial<Pet>;
@@ -84,6 +86,9 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
   const [animal, setAnimal] = useState(initialData?.animal || '');
   const [breed, setBreed] = useState(initialData?.breed || '');
   const [image, setImage] = useState(initialData?.image || '');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [availableBreeds, setAvailableBreeds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -103,12 +108,29 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
     if (!currentUser) return;
     
     try {
+      setIsUploading(true);
+      setUploadError('');
+      
+      let finalImageUrl = image;
+      
+      // If we have a new image file, upload it
+      if (imageFile) {
+        try {
+          // In a real app, use uploadImage instead of simulateImageUpload
+          finalImageUrl = await simulateImageUpload(imageFile);
+        } catch (error) {
+          setUploadError('Failed to upload image. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+      
       const petData = {
         userID: currentUser._id,
         name,
         animal,
         breed,
-        image: image || 'https://via.placeholder.com/150',
+        image: finalImageUrl || 'https://via.placeholder.com/150',
       };
       
       const resultAction = await dispatch(createPet(petData)).unwrap();
@@ -118,17 +140,15 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
       }
     } catch (error) {
       console.error('Failed to create pet', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  // For a real app, implement an image upload functionality
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In a real app, you'd upload the file to a server and get the URL
-      // For this example, we'll use a placeholder
-      setImage('https://via.placeholder.com/150');
-    }
+  const handleImageSelected = (file: File, previewUrl: string) => {
+    setImageFile(file);
+    setImage(previewUrl);
+    setUploadError('');
   };
 
   return (
@@ -194,20 +214,16 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
         </div>
         
         <div className="mb-6">
-          <label htmlFor="image" className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-2">
             Pet Photo
           </label>
-          <input
-            type="file"
-            id="image"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          <ImageUpload 
+            onImageSelected={handleImageSelected} 
+            currentImage={image}
+            label="Upload Pet Photo"
           />
-          {image && (
-            <div className="mt-2">
-              <img src={image} alt="Preview" className="h-32 w-32 object-cover rounded-md" />
-            </div>
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
           )}
         </div>
         
@@ -229,10 +245,10 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
           )}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isUploading}
             className="btn-primary"
           >
-            {isLoading ? 'Saving...' : initialData ? 'Update Pet' : 'Add Pet'}
+            {isLoading || isUploading ? 'Saving...' : initialData ? 'Update Pet' : 'Add Pet'}
           </button>
         </div>
       </form>

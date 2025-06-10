@@ -9,9 +9,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Pets from './pages/Pets';
 import Chat from './pages/Chat';
+import AIChat from './pages/AIChat';
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import FloatingChatButton from './components/chat/FloatingChatButton';
 
 function App() {
   return (
@@ -27,8 +29,12 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/pets" element={<Pets />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/ai-assistant" element={<AIChat />} />
           </Route>
         </Routes>
+        
+        {/* Global floating AI chat button */}
+        <FloatingChatButton />
       </BrowserRouter>
     </Provider>
   );

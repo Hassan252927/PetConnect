@@ -1,105 +1,81 @@
-# PetConnect
+# PetConnect - Pet Care Social Network
 
-PetConnect is a social platform designed for pet lovers to share experiences, media, and information about their pets. Users can register, create pet profiles, post updates, interact through comments and chat, and get assistance from an AI chatbot.
+PetConnect is a social network application focused on pets and animal care, featuring an AI assistant that can answer questions about pet care, breeds, training, and more.
 
 ## Features
 
-- **User Authentication**: Register and login with email and password.
-- **User Profiles**: Customize your profile and showcase your pets.
-- **Pet Management**: Create detailed profiles for your pets.
-- **Posts**: Share photos and updates about your pets.
-- **Social Interaction**: Like, comment, and save posts from other users.
-- **Direct Messaging**: Chat with other pet owners.
+- AI-powered pet care assistant that answers animal-related questions
+- Integrated with OpenAI API for intelligent responses
+- Floating chat button accessible from anywhere in the app
+- Social networking features for pet owners
+- Pet profiles, posts, and messaging
 
-## Technologies Used
+## Installation
 
-- **Frontend**: React.js, TypeScript, Redux, React Router, Tailwind CSS
-- **State Management**: Redux Toolkit
-- **Styling**: Tailwind CSS
+1. Clone the repository
+2. Install dependencies
 
-## Getting Started
+```bash
+cd pet-connect
+npm install
+```
 
-### Prerequisites
+3. Set up environment variables by creating a `.env` file in the root of the pet-connect directory:
 
-- Node.js (v14.0 or later)
-- npm or yarn
+```
+# API Keys
+REACT_APP_OPENAI_API_KEY=your-openai-api-key-here
 
-### Installation
+# API Configuration
+REACT_APP_OPENAI_MODEL=gpt-3.5-turbo
+REACT_APP_MAX_TOKENS=500
+REACT_APP_TEMPERATURE=0.7
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/pet-connect.git
-   cd pet-connect
-   ```
+# Feature Flags
+REACT_APP_ENABLE_AI_FEATURES=true
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Replace `your-openai-api-key-here` with your actual OpenAI API key.
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+4. Start the development server
 
-4. Open [http://localhost:3000](http://localhost:3000) to view the application in your browser.
+```bash
+npm start
+```
+
+## Environment Setup
+
+You can use the included setup script to create your `.env` file:
+
+```bash
+npm run setup-env
+```
+
+This will guide you through setting up your environment variables and OpenAI API key.
+
+## AI Features
+
+The PetConnect AI assistant is designed to answer only animal and pet-related questions. It uses:
+
+1. OpenAI API integration for intelligent, contextual responses
+2. Fallback to simulated responses if no API key is provided
+3. Conversation memory that persists between sessions
+4. Context-aware responses that build upon previous messages
 
 ## Project Structure
 
-```
-pet-connect/
-├── public/
-├── src/
-│   ├── components/
-│   │   ├── auth/         # Authentication components
-│   │   ├── chat/         # Chat components
-│   │   ├── layout/       # Layout components
-│   │   ├── pet/          # Pet-related components
-│   │   └── post/         # Post-related components
-│   ├── hooks/            # Custom hooks
-│   ├── pages/            # Page components
-│   ├── services/         # API services
-│   ├── store/            # Redux store configuration
-│   │   ├── userSlice.ts  # User state management
-│   │   ├── petSlice.ts   # Pet state management
-│   │   ├── postSlice.ts  # Post state management
-│   │   └── chatSlice.ts  # Chat state management
-│   ├── utils/            # Utility functions
-│   ├── App.tsx           # Main application component
-│   └── index.tsx         # Entry point
-├── package.json
-└── README.md
-```
+- `/src/components` - React components organized by feature
+- `/src/hooks` - Custom React hooks
+- `/src/pages` - Page components
+- `/src/services` - API and service functions
+- `/src/store` - Redux store configuration
+- `/src/types` - TypeScript type definitions
 
-## Testing
+## Technologies Used
 
-To test the functionality:
-
-1. **User Authentication**:
-   - Register a new account
-   - Login with credentials
-   - Log out
-
-2. **Pet Management**:
-   - Create a new pet profile
-   - View pet details
-   - Update pet information
-
-3. **Posts**:
-   - Create a new post
-   - View posts in the feed
-   - Interact with posts (like, comment, save)
-
-4. **Chat**:
-   - Start a conversation with another user
-   - Send messages
-   - View conversation history
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Thanks to all the contributors who have helped with this project.
-- Special thanks to the open-source community for providing the tools and libraries used in this project.
+- React
+- TypeScript
+- Redux Toolkit
+- OpenAI API
+- React Router
+- Tailwind CSS 

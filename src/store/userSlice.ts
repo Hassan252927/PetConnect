@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 // Types
-interface User {
+export interface User {
   _id: string;
   username: string;
   email: string;

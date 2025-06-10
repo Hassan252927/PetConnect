@@ -37,3 +37,8 @@ code {
   --color-dark: #333333;
   --color-light: #F9F9F9;
 }
+
+/* Custom utility classes */
+.scale-102 {
+  transform: scale(1.02);
+}
