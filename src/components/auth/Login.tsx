@@ -90,9 +90,12 @@ const Login: React.FC = () => {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-primary hover:text-opacity-80">
+              <button 
+                type="button" 
+                className="font-medium text-primary hover:text-opacity-80"
+              >
                 Forgot your password?
-              </a>
+              </button>
             </div>
           </div>
 

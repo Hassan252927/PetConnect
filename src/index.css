@@ -29,3 +29,11 @@ code {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
+
+@theme {
+  --color-primary: #4A90E2;
+  --color-secondary: #FF9966;
+  --color-accent: #6FCF97;
+  --color-dark: #333333;
+  --color-light: #F9F9F9;
+}

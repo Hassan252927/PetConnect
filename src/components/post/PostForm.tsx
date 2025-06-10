@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPost } from '../../store/postSlice';
 import { Pet } from '../../store/petSlice';
@@ -11,7 +11,7 @@ interface PostFormProps {
 const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { pets, isLoading: isPetLoading } = useAppSelector((state) => state.pet);
+  const { pets } = useAppSelector((state) => state.pet);
   const { isLoading: isPostLoading, error } = useAppSelector((state) => state.post);
   
   const [caption, setCaption] = useState('');
