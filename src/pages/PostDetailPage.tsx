@@ -346,14 +346,14 @@ const PostDetailPage: React.FC = () => {
                         alt={comment.username}
                         className="h-10 w-10 rounded-full object-cover"
                       />
-                      <div className="flex-grow bg-gray-50 dark:bg-gray-750 rounded-lg p-3">
+                      <div className="flex-grow bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-medium text-gray-800 dark:text-white">{comment.username}</span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {formatDate(comment.createdAt)}
                           </span>
                         </div>
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{comment.content}</p>
+                        <p className="text-gray-700 dark:text-gray-200 whitespace-pre-line">{comment.content}</p>
                       </div>
                     </div>
                   ))}

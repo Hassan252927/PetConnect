@@ -4,6 +4,7 @@ import chatReducer from './chatSlice';
 import petReducer from './petSlice';
 import postReducer from './postSlice';
 import settingsReducer from './settingsSlice';
+import notificationReducer from './notificationSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     pet: petReducer,
     post: postReducer,
     settings: settingsReducer,
+    notification: notificationReducer,
   },
 });
 

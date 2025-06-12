@@ -2,20 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks/useRedux';
 import { logout } from '../../store/userSlice';
+import { fetchNotifications } from '../../store/notificationSlice';
+import NotificationDropdown from '../notifications/NotificationDropdown';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
   const { currentUser } = useAppSelector((state) => state.user);
   const { chats } = useAppSelector((state) => state.chat);
+  const { feedPosts } = useAppSelector((state) => state.post);
+  const { unreadCount: notificationCount } = useAppSelector((state) => state.notification);
   
   // Calculate unread count from chats
-  const unreadCount = chats?.reduce((total, chat) => total + (chat.unreadCount || 0), 0) || 0;
+  const unreadChatCount = chats?.reduce((total, chat) => total + (chat.unreadCount || 0), 0) || 0;
 
   // Navbar links
   const navLinks = [
@@ -40,6 +45,16 @@ const Header: React.FC = () => {
     };
   }, []);
 
+  // Fetch notifications when user is logged in and posts are loaded
+  useEffect(() => {
+    if (currentUser && feedPosts.length > 0) {
+      dispatch(fetchNotifications({ 
+        userID: currentUser._id, 
+        posts: feedPosts 
+      }));
+    }
+  }, [currentUser, feedPosts, dispatch]);
+
   const handleLogout = async () => {
     try {
       await dispatch(logout()).unwrap();
@@ -47,6 +62,13 @@ const Header: React.FC = () => {
     } catch (error) {
       console.error('Logout failed', error);
     }
+  };
+
+  const toggleNotifications = () => {
+    // Close other dropdowns
+    setIsMenuOpen(false);
+    // Toggle notifications
+    setIsNotificationsOpen(!isNotificationsOpen);
   };
 
   return (
@@ -85,21 +107,33 @@ const Header: React.FC = () => {
               <div className="hidden md:flex items-center space-x-4">
                 <div className="relative">
                   <button
+                    onClick={toggleNotifications}
                     className="relative p-2 text-gray-600 hover:text-primary transition-colors duration-200"
                     title="Notifications"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
-                    <span className="absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
-                      {unreadCount}
-                    </span>
+                    {notificationCount > 0 && (
+                      <span className="absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
+                        {notificationCount}
+                      </span>
+                    )}
                   </button>
+                  
+                  {/* Notification Dropdown */}
+                  <NotificationDropdown 
+                    isOpen={isNotificationsOpen} 
+                    onClose={() => setIsNotificationsOpen(false)} 
+                  />
                 </div>
 
                 <div className="relative">
                   <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    onClick={() => {
+                      setIsNotificationsOpen(false);
+                      setIsMenuOpen(!isMenuOpen);
+                    }}
                     className="flex items-center focus:outline-none group"
                   >
                     <div className="relative">
@@ -237,14 +271,17 @@ const Header: React.FC = () => {
                 <div className="text-base font-medium text-gray-800 dark:text-white">{currentUser?.username}</div>
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{currentUser?.email}</div>
               </div>
-              <button className="ml-auto flex-shrink-0 bg-gray-100 dark:bg-gray-700 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-primary relative">
+              <button 
+                className="ml-auto flex-shrink-0 bg-gray-100 dark:bg-gray-700 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-primary relative"
+                onClick={toggleNotifications}
+              >
                 <span className="sr-only">View notifications</span>
                 <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                {unreadCount > 0 && (
+                {notificationCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
-                    {unreadCount}
+                    {notificationCount}
                   </span>
                 )}
               </button>
@@ -252,24 +289,34 @@ const Header: React.FC = () => {
             <div className="mt-3 px-2 space-y-1">
               <Link
                 to={currentUser ? `/profile/${currentUser._id}` : '/login'}
-                className="block px-3 py-2 rounded-md text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
               >
                 Your Profile
               </Link>
               <Link
                 to="/settings"
-                className="block px-3 py-2 rounded-md text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
               >
                 Settings
               </Link>
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-3 py-2 rounded-md text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary"
               >
                 Sign out
               </button>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Mobile notifications dropdown */}
+      {isMobileMenuOpen && isNotificationsOpen && (
+        <div className="md:hidden px-4 py-2">
+          <NotificationDropdown 
+            isOpen={isNotificationsOpen} 
+            onClose={() => setIsNotificationsOpen(false)} 
+          />
         </div>
       )}
     </header>
