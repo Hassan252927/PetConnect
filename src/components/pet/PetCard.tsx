@@ -36,7 +36,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onClick }) => {
             View Profile
           </Link>
           <span className="text-gray-500 text-sm">
-            {pet.posts.length} {pet.posts.length === 1 ? 'post' : 'posts'}
+            {pet.description ? 'Has description' : 'No description'}
           </span>
         </div>
       </div>

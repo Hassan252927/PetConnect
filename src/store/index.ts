@@ -1,18 +1,20 @@
 import { configureStore } from '@reduxjs/toolkit';
 import userReducer from './userSlice';
+import chatReducer from './chatSlice';
 import petReducer from './petSlice';
 import postReducer from './postSlice';
-import chatReducer from './chatSlice';
+import settingsReducer from './settingsSlice';
 
 export const store = configureStore({
   reducer: {
     user: userReducer,
+    chat: chatReducer,
     pet: petReducer,
     post: postReducer,
-    chat: chatReducer,
+    settings: settingsReducer,
   },
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch; 
+export type AppDispatch = typeof store.dispatch;

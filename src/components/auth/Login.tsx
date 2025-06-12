@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login } from '../../store/userSlice';
+import { login, directLogin } from '../../store/userSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import './auth.css';
 
@@ -28,27 +28,26 @@ const PawPrint: React.FC<{index: number}> = ({ index }) => {
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.user);
 
-  // Effect for animations on load
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // TEMPORARY: Use directLogin instead of regular login to bypass server issues
+    dispatch(directLogin());
+    navigate('/');
+    
+    // Comment out the regular login process for now
+    /*
     try {
       await dispatch(login({ email, password })).unwrap();
       navigate('/');
     } catch (error) {
       console.error('Login failed', error);
     }
+    */
   };
 
   // Create paw print elements for animation
@@ -57,9 +56,9 @@ const Login: React.FC = () => {
   ));
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex items-center justify-center">
+    <div className="min-h-screen relative flex items-center justify-center py-12">
       {/* Animated Background */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
         
         {/* Animated Paw Prints */}
@@ -162,29 +161,13 @@ const Login: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Remember me
-                  </label>
-                </div>
-
-                <div className="text-sm">
-                  <button 
-                    type="button" 
-                    className="font-medium text-primary hover:text-primary-dark transition-colors"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
+              <div className="text-right">
+                <button 
+                  type="button" 
+                  className="text-sm font-medium text-primary hover:text-primary-dark transition-colors"
+                >
+                  Forgot password?
+                </button>
               </div>
 
               <div>
@@ -210,6 +193,23 @@ const Login: React.FC = () => {
                     </div>
                   )}
                 </button>
+              </div>
+
+              {/* Temporary Bypass Button for Testing */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    dispatch(directLogin());
+                    navigate('/');
+                  }}
+                  className="group relative w-full flex justify-center py-3 px-4 border-2 border-red-600 text-sm font-bold rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none transition-all duration-300"
+                >
+                  BYPASS LOGIN FOR TESTING
+                </button>
+                <p className="text-xs text-center mt-1 text-red-600">
+                  Temporary feature to bypass server issues
+                </p>
               </div>
             </form>
 

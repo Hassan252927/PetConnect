@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPost } from '../../store/postSlice';
-import { Pet } from '../../store/petSlice';
+import { Pet, createPet } from '../../store/petSlice';
 import ImageUpload from '../common/ImageUpload';
 import { simulateImageUpload } from '../../services/uploadService';
 
@@ -58,16 +58,14 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       }
       
       const postData = {
-        petID: selectedPet._id,
         userID: currentUser._id,
-        petName: selectedPet.name,
-        petImage: selectedPet.image,
         username: currentUser.username,
-        userProfilePic: currentUser.profilePic,
+        profilePic: currentUser.profilePic || 'https://via.placeholder.com/50',
+        petID: selectedPet._id,
+        petName: selectedPet.name,
         media: finalMediaUrl,
         caption,
-        animal: selectedPet.animal,
-        breed: selectedPet.breed,
+        tags: [selectedPet.animal.toLowerCase(), selectedPet.breed.toLowerCase(), 'pet'],
       };
       
       await dispatch(createPost(postData)).unwrap();
@@ -164,18 +162,16 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
         }
       }
       
-      // In a real app, you'd create the pet via API
-      // For this example, we'll simulate creating a pet
-      const newPet: Pet = {
-        _id: `pet-${Date.now()}`,
-        userID: currentUser._id,
+      const petData = {
+        ownerID: currentUser._id,
         name: newPetName,
         animal: newPetAnimal,
         breed: newPetBreed,
         image: petImageUrl,
-        posts: [],
+        description: '',
       };
       
+      const newPet = await dispatch(createPet(petData)).unwrap();
       setSelectedPet(newPet);
       setCreatePetMode(false);
     } catch (error) {

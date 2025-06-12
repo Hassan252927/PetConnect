@@ -1,29 +1,62 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-// Types
+// Define types for pet-related data
 export interface Pet {
   _id: string;
-  userID: string;
   name: string;
   animal: string;
   breed: string;
-  image: string;
-  posts: string[];
-  age?: string;
-  size?: string;
+  age?: number;
+  gender?: string;
+  weight?: number;
+  image?: string;
+  description?: string;
+  ownerID: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface PetState {
+export interface PetState {
   pets: Pet[];
-  currentPet: Pet | null;
   isLoading: boolean;
   error: string | null;
 }
 
+// Generate mock pet data
+const generateMockPets = (ownerID: string): Pet[] => [
+  {
+    _id: 'pet1',
+    name: 'Buddy',
+    animal: 'Dog',
+    breed: 'Golden Retriever',
+    age: 3,
+    gender: 'Male',
+    weight: 65,
+    image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    description: 'Friendly and energetic golden retriever who loves to play fetch.',
+    ownerID,
+    createdAt: new Date(Date.now() - 7776000000).toISOString(), // 90 days ago
+    updatedAt: new Date(Date.now() - 864000000).toISOString(), // 10 days ago
+  },
+  {
+    _id: 'pet2',
+    name: 'Whiskers',
+    animal: 'Cat',
+    breed: 'Persian',
+    age: 5,
+    gender: 'Female',
+    weight: 10,
+    image: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    description: 'Lazy and affectionate Persian cat who loves to nap in sunny spots.',
+    ownerID,
+    createdAt: new Date(Date.now() - 15552000000).toISOString(), // 180 days ago
+    updatedAt: new Date(Date.now() - 1728000000).toISOString(), // 20 days ago
+  },
+];
+
 // Initial state
 const initialState: PetState = {
   pets: [],
-  currentPet: null,
   isLoading: false,
   error: null,
 };
@@ -31,106 +64,92 @@ const initialState: PetState = {
 // Async thunks
 export const fetchUserPets = createAsyncThunk(
   'pet/fetchUserPets',
-  async (userId: string, { rejectWithValue }) => {
+  async (userID: string, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      // const response = await axios.get(`/api/pets/user/${userId}`);
+      // In a real app, this would be an API call
+      // const response = await apiClient.get(`/users/${userID}/pets`);
       
-      // Simulated data
-      return [
-        {
-          _id: 'pet1',
-          userID: userId,
-          name: 'Buddy',
-          animal: 'Dog',
-          breed: 'Labrador',
-          image: 'https://via.placeholder.com/150',
-          posts: ['post1', 'post2'],
-        },
-        {
-          _id: 'pet2',
-          userID: userId,
-          name: 'Whiskers',
-          animal: 'Cat',
-          breed: 'Siamese',
-          image: 'https://via.placeholder.com/150',
-          posts: ['post3'],
-        },
-      ];
-    } catch (error) {
-      return rejectWithValue('Failed to fetch pets. Please try again.');
+      // For now, we'll use mock data
+      return generateMockPets(userID);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch pets');
     }
   }
 );
 
 export const createPet = createAsyncThunk(
   'pet/createPet',
+  async (petData: Omit<Pet, '_id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
+    try {
+      // In a real app, this would be an API call
+      // const response = await apiClient.post('/pets', petData);
+      
+      // For now, we'll simulate creating a pet
+      const newPet: Pet = {
+        _id: `pet_${Date.now()}`,
+        ...petData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      return newPet;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to create pet');
+    }
+  }
+);
+
+export const updatePet = createAsyncThunk(
+  'pet/updatePet',
   async (
-    petData: { userID: string; name: string; animal: string; breed: string; image: string },
-    { rejectWithValue }
+    { petID, petData }: { petID: string; petData: Partial<Pet> },
+    { rejectWithValue, getState }
   ) => {
     try {
-      // Simulate API call
-      // const response = await axios.post('/api/pets', petData);
+      // In a real app, this would be an API call
+      // const response = await apiClient.put(`/pets/${petID}`, petData);
       
-      // Simulated response
-      return {
-        _id: `pet${Date.now()}`,
-        userID: petData.userID,
-        name: petData.name,
-        animal: petData.animal,
-        breed: petData.breed,
-        image: petData.image,
-        posts: [],
+      // For now, we'll simulate updating a pet
+      const state = getState() as { pet: PetState };
+      const existingPet = state.pet.pets.find(pet => pet._id === petID);
+      
+      if (!existingPet) {
+        throw new Error('Pet not found');
+      }
+      
+      const updatedPet: Pet = {
+        ...existingPet,
+        ...petData,
+        updatedAt: new Date().toISOString(),
       };
-    } catch (error) {
-      return rejectWithValue('Failed to create pet. Please try again.');
+      
+      return updatedPet;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update pet');
     }
   }
 );
 
-export const fetchPetById = createAsyncThunk(
-  'pet/fetchPetById',
-  async (petId: string, { rejectWithValue }) => {
+export const deletePet = createAsyncThunk(
+  'pet/deletePet',
+  async (petID: string, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      // const response = await axios.get(`/api/pets/${petId}`);
+      // In a real app, this would be an API call
+      // await apiClient.delete(`/pets/${petID}`);
       
-      // Simulated response
-      return {
-        _id: petId,
-        userID: 'user1',
-        name: 'Rex',
-        animal: 'Dog',
-        breed: 'German Shepherd',
-        image: 'https://via.placeholder.com/150',
-        posts: ['post1', 'post4'],
-      };
-    } catch (error) {
-      return rejectWithValue('Failed to fetch pet details. Please try again.');
+      // For now, we'll just return the ID to remove from state
+      return petID;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to delete pet');
     }
   }
 );
 
-// Slice
+// Create the pet slice
 const petSlice = createSlice({
   name: 'pet',
   initialState,
-  reducers: {
-    setCurrentPet: (state, action: PayloadAction<Pet>) => {
-      state.currentPet = action.payload;
-    },
-    clearCurrentPet: (state) => {
-      state.currentPet = null;
-    },
-    addPostToPet: (state, action: PayloadAction<{ petId: string; postId: string }>) => {
-      const { petId, postId } = action.payload;
-      const pet = state.pets.find((pet) => pet._id === petId);
-      if (pet) {
-        pet.posts.push(postId);
-      }
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       // Fetch user pets
@@ -161,21 +180,37 @@ const petSlice = createSlice({
         state.error = action.payload as string;
       })
       
-      // Fetch pet by ID
-      .addCase(fetchPetById.pending, (state) => {
+      // Update pet
+      .addCase(updatePet.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchPetById.fulfilled, (state, action) => {
+      .addCase(updatePet.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.currentPet = action.payload;
+        const index = state.pets.findIndex(pet => pet._id === action.payload._id);
+        if (index !== -1) {
+          state.pets[index] = action.payload;
+        }
       })
-      .addCase(fetchPetById.rejected, (state, action) => {
+      .addCase(updatePet.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Delete pet
+      .addCase(deletePet.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deletePet.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.pets = state.pets.filter(pet => pet._id !== action.payload);
+      })
+      .addCase(deletePet.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
   },
 });
 
-export const { setCurrentPet, clearCurrentPet, addPostToPet } = petSlice.actions;
 export default petSlice.reducer; 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../store/userSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
@@ -37,14 +37,6 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.user);
 
-  // Effect for animations on load
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -69,9 +61,9 @@ const Register: React.FC = () => {
   ));
 
   return (
-    <div className="min-h-screen overflow-hidden relative flex items-center justify-center">
+    <div className="min-h-screen relative flex items-center justify-center py-12">
       {/* Animated Background */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
         
         {/* Animated Paw Prints */}

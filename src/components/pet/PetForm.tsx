@@ -126,11 +126,12 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
       }
       
       const petData = {
-        userID: currentUser._id,
+        ownerID: currentUser._id,
         name,
         animal,
         breed,
         image: finalImageUrl || 'https://via.placeholder.com/150',
+        description: '',
       };
       
       const resultAction = await dispatch(createPet(petData)).unwrap();

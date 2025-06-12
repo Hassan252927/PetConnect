@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Post, likePost, unlikePost, addComment } from '../../store/postSlice';
+import { Post, likePost, addComment } from '../../store/postSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { savePost, unsavePost } from '../../store/userSlice';
 import { ExtendedPost } from '../../types/post';
@@ -18,16 +18,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const isLiked = currentUser && post.likes.includes(currentUser._id);
-  const isSaved = currentUser && currentUser.savedPosts.includes(post._id);
+  const isSaved = currentUser && currentUser.savedPosts?.includes(post._id);
 
   const handleLikeToggle = () => {
     if (!currentUser) return;
     
-    if (isLiked) {
-      dispatch(unlikePost({ postId: post._id, userId: currentUser._id }));
-    } else {
-      dispatch(likePost({ postId: post._id, userId: currentUser._id }));
-    }
+    dispatch(likePost({ postID: post._id, userID: currentUser._id }));
   };
 
   const handleSaveToggle = () => {
@@ -74,7 +70,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center">
           <img
-            src={post.userProfilePic}
+            src={post.profilePic}
             alt={post.username}
             className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-primary transition-transform duration-200 hover:scale-110"
           />
@@ -83,7 +79,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
               {post.username}
             </Link>
             <div className="flex items-center text-gray-500 text-sm">
-              <span className="mr-2">{formatDate(post.timestamp)}</span>
+              <span className="mr-2">{formatDate(post.createdAt)}</span>
               <span>•</span>
               <Link to={`/pets/${post.petID}`} className="ml-2 hover:text-primary transition-colors duration-200">
                 {post.petName}
@@ -166,7 +162,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <span>{post.comments.length}</span>
+              <span>{post.commentsCount || post.comments.length}</span>
             </button>
             
             <button className="flex items-center text-gray-600 hover:text-primary transition-colors duration-200 active:scale-90">
@@ -209,21 +205,23 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
             </button>
         </div>
         
-        <div>
-          <p className="text-gray-800">
-            <span className="font-medium">{post.petName}</span> {post.caption}
-          </p>
-          <div className="mt-2 text-sm text-gray-600">
-            <span 
-              className="mr-2 bg-gray-100 px-2 py-1 rounded-md inline-block transition-all hover:bg-gray-200 hover:scale-105 hover:shadow-sm"
-            >
-              {post.animal}
-            </span>
-            <span 
-              className="bg-gray-100 px-2 py-1 rounded-md inline-block transition-all hover:bg-gray-200 hover:scale-105 hover:shadow-sm"
-            >
-              {post.breed}
-            </span>
+        <div className="mb-4">
+          <div className="mb-3">
+            <span className="font-medium text-gray-800">
+              {post.username}
+            </span>{' '}
+            <span className="text-gray-700">{post.caption}</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 text-xs mt-2">
+            {post.tags && post.tags.map((tag, index) => (
+              <span 
+                key={index} 
+                className="bg-gray-100 px-2 py-1 rounded-md inline-block transition-all hover:bg-gray-200 hover:scale-105 hover:shadow-sm"
+              >
+                #{tag}
+              </span>
+            ))}
           </div>
         </div>
         
@@ -251,7 +249,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
                           {comment.username}
                         </Link>
                         <span className="text-xs text-gray-500 ml-2">
-                          {formatDate(comment.timestamp)}
+                          {formatDate(comment.createdAt)}
                         </span>
                       </div>
                       <p className="text-gray-700 mt-1">{comment.content}</p>

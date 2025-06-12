@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { fetchUserPets } from '../store/petSlice';
+import { fetchUserPets, Pet } from '../store/petSlice';
 import Layout from '../components/layout/Layout';
 import PetCard from '../components/pet/PetCard';
 import PetForm from '../components/pet/PetForm';
@@ -27,7 +27,7 @@ const Pets: React.FC = () => {
   });
   
   // Filtered pets
-  const [filteredPets, setFilteredPets] = useState<any[]>([]);
+  const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
   
   useEffect(() => {
     if (currentUser) {
@@ -61,16 +61,18 @@ const Pets: React.FC = () => {
     }
     
     // Apply age filter
-    if (activeFilters.age) {
-      filtered = filtered.filter(pet => pet.age === activeFilters.age);
+    if (activeFilters.age && activeFilters.age !== '') {
+      // Convert string age to number for comparison
+      const ageNum = parseInt(activeFilters.age, 10);
+      if (!isNaN(ageNum)) {
+        filtered = filtered.filter(pet => pet.age === ageNum);
+      }
     }
     
-    // Apply size filter
-    if (activeFilters.size) {
-      filtered = filtered.filter(pet => pet.size === activeFilters.size);
+    // Apply gender filter (if available in pet data)
+    if (activeFilters.gender) {
+      filtered = filtered.filter(pet => pet.gender === activeFilters.gender);
     }
-    
-    // We ignore gender and location filters for now as they're not in the Pet type
     
     setFilteredPets(filtered);
   }, [pets, searchQuery, activeFilters]);
@@ -87,7 +89,7 @@ const Pets: React.FC = () => {
   return (
     <Layout>
       <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Your Pets</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Your Pets</h1>
         <button
           onClick={() => setShowAddPet(!showAddPet)}
           className="btn-primary"
@@ -106,7 +108,7 @@ const Pets: React.FC = () => {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="w-full md:w-auto whitespace-nowrap px-4 py-2 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+            className="w-full md:w-auto whitespace-nowrap px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -145,20 +147,20 @@ const Pets: React.FC = () => {
       
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="text-gray-500">Loading pets...</div>
+          <div className="text-gray-500 dark:text-gray-400">Loading pets...</div>
         </div>
       ) : error ? (
-        <div className="bg-red-100 text-red-700 p-4 rounded-md">
+        <div className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-4 rounded-md">
           {error}
         </div>
       ) : filteredPets.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
             {searchQuery || Object.values(activeFilters).some(val => val !== '')
               ? "No pets match your search criteria"
               : "No pets added yet!"}
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             {searchQuery || Object.values(activeFilters).some(val => val !== '')
               ? "Try adjusting your filters or search query"
               : "Add your furry, feathery, or scaly friends to share their moments with the community."}

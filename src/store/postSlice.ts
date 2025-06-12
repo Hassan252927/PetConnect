@@ -1,46 +1,147 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { Pet } from './petSlice';
 
-// Types
-interface Comment {
+// Define types for post-related data
+export interface Comment {
   _id: string;
   postID: string;
   userID: string;
   username: string;
   profilePic: string;
   content: string;
-  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Post {
   _id: string;
-  petID: string;
   userID: string;
-  petName: string;
-  petImage: string;
   username: string;
-  userProfilePic: string;
-  media: string;
+  profilePic: string;
+  petID?: string;
+  petName?: string;
+  media?: string;
   caption: string;
-  likes: string[];
+  likes: string[]; // Array of userIDs who liked the post
+  commentsCount: number;
   comments: Comment[];
-  timestamp: string;
-  animal: string;
-  breed: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface PostState {
-  posts: Post[];
-  currentPost: Post | null;
+export interface PostState {
   feedPosts: Post[];
   userPosts: Post[];
   isLoading: boolean;
   error: string | null;
 }
 
+// Generate mock post data
+const generateMockPosts = (currentUserID: string, pets: Pet[]): Post[] => {
+  // Create a mix of the current user's posts and others
+  const mockUsernames = ['jane_doe', 'pet_lover', 'animal_friend', 'doggo_fan'];
+  const mockProfilePics = [
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+  ];
+  
+  const petMedia = [
+    'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    'https://images.unsplash.com/photo-1548767797-d8c844163c4c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+    'https://images.unsplash.com/photo-1536590158209-e9d615d525e4?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+  ];
+  
+  const mockPosts: Post[] = [];
+  
+  // Add some posts from the current user with their pets
+  pets.forEach((pet, index) => {
+    mockPosts.push({
+      _id: `post_user_${index}`,
+      userID: currentUserID,
+      username: 'You',
+      profilePic: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+      petID: pet._id,
+      petName: pet.name,
+      media: pet.image || petMedia[index % petMedia.length],
+      caption: `This is my amazing ${pet.animal.toLowerCase()}, ${pet.name}! #pet #${pet.animal.toLowerCase()} #cute`,
+      likes: [
+        `user_${Math.floor(Math.random() * 100)}`,
+        `user_${Math.floor(Math.random() * 100)}`,
+      ],
+      commentsCount: 2,
+      comments: [
+        {
+          _id: `comment_${index}_1`,
+          postID: `post_user_${index}`,
+          userID: `user_${Math.floor(Math.random() * 100)}`,
+          username: mockUsernames[Math.floor(Math.random() * mockUsernames.length)],
+          profilePic: mockProfilePics[Math.floor(Math.random() * mockProfilePics.length)],
+          content: 'So adorable! 😍',
+          createdAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+          updatedAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+        },
+        {
+          _id: `comment_${index}_2`,
+          postID: `post_user_${index}`,
+          userID: `user_${Math.floor(Math.random() * 100)}`,
+          username: mockUsernames[Math.floor(Math.random() * mockUsernames.length)],
+          profilePic: mockProfilePics[Math.floor(Math.random() * mockProfilePics.length)],
+          content: `I love ${pet.name}! Such a cutie.`,
+          createdAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+          updatedAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+        },
+      ],
+      tags: ['pet', pet.animal.toLowerCase(), 'cute'],
+      createdAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 7)).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 7)).toISOString(),
+    });
+  });
+  
+  // Add some posts from other users
+  for (let i = 0; i < 5; i++) {
+    const randomUserIndex = Math.floor(Math.random() * mockUsernames.length);
+    mockPosts.push({
+      _id: `post_other_${i}`,
+      userID: `user_${Math.floor(Math.random() * 100)}`,
+      username: mockUsernames[randomUserIndex],
+      profilePic: mockProfilePics[randomUserIndex % mockProfilePics.length],
+      media: petMedia[i % petMedia.length],
+      caption: `My pet is the best! #${i % 2 === 0 ? 'dog' : 'cat'} #petsofinstagram`,
+      likes: [
+        ...(Math.random() > 0.5 ? [currentUserID] : []),
+        `user_${Math.floor(Math.random() * 100)}`,
+        `user_${Math.floor(Math.random() * 100)}`,
+      ],
+      commentsCount: 1,
+      comments: [
+        {
+          _id: `comment_other_${i}`,
+          postID: `post_other_${i}`,
+          userID: `user_${Math.floor(Math.random() * 100)}`,
+          username: mockUsernames[Math.floor(Math.random() * mockUsernames.length)],
+          profilePic: mockProfilePics[Math.floor(Math.random() * mockProfilePics.length)],
+          content: 'What a beautiful pet!',
+          createdAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+          updatedAt: new Date(Date.now() - 3600000 * Math.random() * 24).toISOString(),
+        },
+      ],
+      tags: [i % 2 === 0 ? 'dog' : 'cat', 'petsofinstagram'],
+      createdAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 14)).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 14)).toISOString(),
+    });
+  }
+  
+  // Sort by creation date (newest first)
+  return mockPosts.sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+};
+
 // Initial state
 const initialState: PostState = {
-  posts: [],
-  currentPost: null,
   feedPosts: [],
   userPosts: [],
   isLoading: false,
@@ -48,102 +149,33 @@ const initialState: PostState = {
 };
 
 // Async thunks
-export const fetchPosts = createAsyncThunk(
-  'post/fetchPosts',
-  async (_, { rejectWithValue }) => {
+export const fetchFeedPosts = createAsyncThunk(
+  'post/fetchFeedPosts',
+  async ({ userID, pets }: { userID: string; pets: Pet[] }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      // const response = await axios.get('/api/posts');
+      // In a real app, this would be an API call
+      // const response = await apiClient.get('/posts/feed');
       
-      // Simulated data
-      return [
-        {
-          _id: 'post1',
-          petID: 'pet1',
-          userID: 'user1',
-          petName: 'Buddy',
-          petImage: 'https://via.placeholder.com/150',
-          username: 'john_doe',
-          userProfilePic: 'https://via.placeholder.com/50',
-          media: 'https://via.placeholder.com/500',
-          caption: 'Buddy enjoying the park!',
-          likes: ['user2', 'user3'],
-          comments: [
-            {
-              _id: 'comment1',
-              postID: 'post1',
-              userID: 'user2',
-              username: 'jane_smith',
-              profilePic: 'https://via.placeholder.com/50',
-              content: 'So cute!',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-          timestamp: new Date().toISOString(),
-          animal: 'Dog',
-          breed: 'Labrador',
-        },
-        {
-          _id: 'post2',
-          petID: 'pet2',
-          userID: 'user2',
-          petName: 'Whiskers',
-          petImage: 'https://via.placeholder.com/150',
-          username: 'jane_smith',
-          userProfilePic: 'https://via.placeholder.com/50',
-          media: 'https://via.placeholder.com/500',
-          caption: 'Whiskers napping in the sun',
-          likes: ['user1'],
-          comments: [],
-          timestamp: new Date().toISOString(),
-          animal: 'Cat',
-          breed: 'Siamese',
-        },
-      ];
-    } catch (error) {
-      return rejectWithValue('Failed to fetch posts. Please try again.');
+      // For now, we'll use mock data
+      return generateMockPosts(userID, pets);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch feed posts');
     }
   }
 );
 
 export const fetchUserPosts = createAsyncThunk(
   'post/fetchUserPosts',
-  async (userId: string, { rejectWithValue }) => {
+  async (userID: string, { rejectWithValue, getState }) => {
     try {
-      // Simulate API call
-      // const response = await axios.get(`/api/posts/user/${userId}`);
+      // In a real app, this would be an API call
+      // const response = await apiClient.get(`/users/${userID}/posts`);
       
-      // Simulated response
-      return [
-        {
-          _id: 'post1',
-          petID: 'pet1',
-          userID: userId,
-          petName: 'Buddy',
-          petImage: 'https://via.placeholder.com/150',
-          username: 'john_doe',
-          userProfilePic: 'https://via.placeholder.com/50',
-          media: 'https://via.placeholder.com/500',
-          caption: 'Buddy enjoying the park!',
-          likes: ['user2', 'user3'],
-          comments: [
-            {
-              _id: 'comment1',
-              postID: 'post1',
-              userID: 'user2',
-              username: 'jane_smith',
-              profilePic: 'https://via.placeholder.com/50',
-              content: 'So cute!',
-              timestamp: new Date().toISOString(),
-            },
-          ],
-          timestamp: new Date().toISOString(),
-          animal: 'Dog',
-          breed: 'Labrador',
-        },
-      ];
-    } catch (error) {
-      return rejectWithValue('Failed to fetch user posts. Please try again.');
+      // For now, we'll filter feed posts for this user
+      const state = getState() as { post: PostState };
+      return state.post.feedPosts.filter(post => post.userID === userID);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch user posts');
     }
   }
 );
@@ -152,59 +184,64 @@ export const createPost = createAsyncThunk(
   'post/createPost',
   async (
     postData: {
-      petID: string;
       userID: string;
-      petName: string;
-      petImage: string;
       username: string;
-      userProfilePic: string;
-      media: string;
+      profilePic: string;
+      petID?: string;
+      petName?: string;
+      media?: string;
       caption: string;
-      animal: string;
-      breed: string;
+      tags?: string[];
     },
     { rejectWithValue }
   ) => {
     try {
-      // Simulate API call
-      // const response = await axios.post('/api/posts', postData);
+      // In a real app, this would be an API call
+      // const response = await apiClient.post('/posts', postData);
       
-      // Simulated response
-      return {
-        _id: `post${Date.now()}`,
+      // For now, we'll simulate creating a post
+      const newPost: Post = {
+        _id: `post_${Date.now()}`,
         ...postData,
         likes: [],
+        commentsCount: 0,
         comments: [],
-        timestamp: new Date().toISOString(),
+        tags: postData.tags || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-    } catch (error) {
-      return rejectWithValue('Failed to create post. Please try again.');
+      
+      return newPost;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to create post');
     }
   }
 );
 
 export const likePost = createAsyncThunk(
   'post/likePost',
-  async ({ postId, userId }: { postId: string; userId: string }, { rejectWithValue }) => {
+  async ({ postID, userID }: { postID: string; userID: string }, { rejectWithValue, getState }) => {
     try {
-      // Simulate API call
-      // await axios.post(`/api/posts/${postId}/like`, { userId });
-      return { postId, userId };
-    } catch (error) {
-      return rejectWithValue('Failed to like post. Please try again.');
-    }
-  }
-);
-
-export const unlikePost = createAsyncThunk(
-  'post/unlikePost',
-  async ({ postId, userId }: { postId: string; userId: string }, { rejectWithValue }) => {
-    try {
-      // Simulate API call
-      // await axios.post(`/api/posts/${postId}/unlike`, { userId });
-      return { postId, userId };
-    } catch (error) {
-      return rejectWithValue('Failed to unlike post. Please try again.');
+      // In a real app, this would be an API call
+      // await apiClient.post(`/posts/${postID}/like`);
+      
+      // For now, we'll toggle the like in state
+      const state = getState() as { post: PostState };
+      const post = [...state.post.feedPosts, ...state.post.userPosts].find(p => p._id === postID);
+      
+      if (!post) {
+        throw new Error('Post not found');
+      }
+      
+      const isLiked = post.likes.includes(userID);
+      
+      return {
+        postID,
+        userID,
+        isLiked, // Current state (to be toggled)
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to like post');
     }
   }
 );
@@ -222,48 +259,41 @@ export const addComment = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      // Simulate API call
-      // const response = await axios.post(`/api/posts/${commentData.postID}/comments`, commentData);
+      // In a real app, this would be an API call
+      // const response = await apiClient.post(`/posts/${commentData.postID}/comments`, commentData);
       
-      // Simulated response
-      const newComment = {
-        _id: `comment${Date.now()}`,
+      // For now, we'll simulate adding a comment
+      const newComment: Comment = {
+        _id: `comment_${Date.now()}`,
         ...commentData,
-        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       
-      return { postId: commentData.postID, comment: newComment };
-    } catch (error) {
-      return rejectWithValue('Failed to add comment. Please try again.');
+      return newComment;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to add comment');
     }
   }
 );
 
-// Slice
+// Create the post slice
 const postSlice = createSlice({
   name: 'post',
   initialState,
-  reducers: {
-    setCurrentPost: (state, action: PayloadAction<Post>) => {
-      state.currentPost = action.payload;
-    },
-    clearCurrentPost: (state) => {
-      state.currentPost = null;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      // Fetch posts
-      .addCase(fetchPosts.pending, (state) => {
+      // Fetch feed posts
+      .addCase(fetchFeedPosts.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchPosts.fulfilled, (state, action) => {
+      .addCase(fetchFeedPosts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.posts = action.payload;
         state.feedPosts = action.payload;
       })
-      .addCase(fetchPosts.rejected, (state, action) => {
+      .addCase(fetchFeedPosts.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
@@ -289,9 +319,10 @@ const postSlice = createSlice({
       })
       .addCase(createPost.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.posts.unshift(action.payload);
-        state.feedPosts.unshift(action.payload);
-        state.userPosts.unshift(action.payload);
+        state.feedPosts.unshift(action.payload); // Add to beginning of array
+        if (action.payload.userID === state.userPosts[0]?.userID) {
+          state.userPosts.unshift(action.payload);
+        }
       })
       .addCase(createPost.rejected, (state, action) => {
         state.isLoading = false;
@@ -300,59 +331,52 @@ const postSlice = createSlice({
       
       // Like post
       .addCase(likePost.fulfilled, (state, action) => {
-        const { postId, userId } = action.payload;
-        const updatePost = (post: Post) => {
-          if (post._id === postId && !post.likes.includes(userId)) {
-            post.likes.push(userId);
+        const { postID, userID, isLiked } = action.payload;
+        
+        // Update in feed posts
+        const feedPost = state.feedPosts.find(post => post._id === postID);
+        if (feedPost) {
+          if (isLiked) {
+            // Unlike
+            feedPost.likes = feedPost.likes.filter(id => id !== userID);
+          } else {
+            // Like
+            feedPost.likes.push(userID);
           }
-        };
-        
-        state.posts.forEach(updatePost);
-        state.feedPosts.forEach(updatePost);
-        state.userPosts.forEach(updatePost);
-        
-        if (state.currentPost && state.currentPost._id === postId) {
-          state.currentPost.likes.push(userId);
         }
-      })
-      
-      // Unlike post
-      .addCase(unlikePost.fulfilled, (state, action) => {
-        const { postId, userId } = action.payload;
-        const updatePost = (post: Post) => {
-          if (post._id === postId) {
-            post.likes = post.likes.filter((id) => id !== userId);
+        
+        // Update in user posts
+        const userPost = state.userPosts.find(post => post._id === postID);
+        if (userPost) {
+          if (isLiked) {
+            // Unlike
+            userPost.likes = userPost.likes.filter(id => id !== userID);
+          } else {
+            // Like
+            userPost.likes.push(userID);
           }
-        };
-        
-        state.posts.forEach(updatePost);
-        state.feedPosts.forEach(updatePost);
-        state.userPosts.forEach(updatePost);
-        
-        if (state.currentPost && state.currentPost._id === postId) {
-          state.currentPost.likes = state.currentPost.likes.filter((id) => id !== userId);
         }
       })
       
       // Add comment
       .addCase(addComment.fulfilled, (state, action) => {
-        const { postId, comment } = action.payload;
-        const updatePost = (post: Post) => {
-          if (post._id === postId) {
-            post.comments.push(comment);
-          }
-        };
+        const comment = action.payload;
         
-        state.posts.forEach(updatePost);
-        state.feedPosts.forEach(updatePost);
-        state.userPosts.forEach(updatePost);
+        // Update in feed posts
+        const feedPost = state.feedPosts.find(post => post._id === comment.postID);
+        if (feedPost) {
+          feedPost.comments.push(comment);
+          feedPost.commentsCount += 1;
+        }
         
-        if (state.currentPost && state.currentPost._id === postId) {
-          state.currentPost.comments.push(comment);
+        // Update in user posts
+        const userPost = state.userPosts.find(post => post._id === comment.postID);
+        if (userPost) {
+          userPost.comments.push(comment);
+          userPost.commentsCount += 1;
         }
       });
   },
 });
 
-export const { setCurrentPost, clearCurrentPost } = postSlice.actions;
 export default postSlice.reducer; 

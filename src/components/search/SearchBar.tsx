@@ -79,7 +79,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <input
             ref={searchInputRef}
             type="text"
-            className={`w-full pl-10 pr-14 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-all duration-200 ${isFocused ? 'scale-102' : ''}`}
+            className={`w-full pl-10 pr-14 py-3 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-all duration-200 dark:bg-gray-700 dark:text-white ${isFocused ? 'scale-102' : ''}`}
             placeholder={placeholder}
             value={query}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
@@ -146,16 +146,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
       
       {showRecentSearches && (
         <div 
-          className="absolute z-10 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-2 animate-fadeIn"
+          className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 animate-fadeIn"
         >
           {recentSearches && recentSearches.length > 0 && (
             <div className="mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-1">Recent Searches</h3>
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 mb-1">Recent Searches</h3>
               <ul>
                 {recentSearches.map((search, index) => (
                   <li key={`recent-${index}`}>
                     <div
-                      className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer transition-transform duration-200 hover:translate-x-1"
+                      className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-transform duration-200 hover:translate-x-1"
                       onClick={() => handleSearchItemClick(search)}
                     >
                       <svg
@@ -172,7 +172,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <span className="text-gray-700">{search}</span>
+                      <span className="text-gray-700 dark:text-gray-300">{search}</span>
                     </div>
                   </li>
                 ))}
@@ -181,12 +181,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
           )}
           
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-1">Suggested Searches</h3>
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 mb-1">Suggested Searches</h3>
             <ul>
               {suggestedSearches.map((search, index) => (
                 <li key={`suggested-${index}`}>
                   <div
-                    className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer transition-transform duration-200 hover:translate-x-1"
+                    className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-transform duration-200 hover:translate-x-1"
                     onClick={() => handleSearchItemClick(search)}
                   >
                     <svg
@@ -200,10 +200,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
-                    <span className="text-gray-700">{search}</span>
+                    <span className="text-gray-700 dark:text-gray-300">{search}</span>
                   </div>
                 </li>
               ))}

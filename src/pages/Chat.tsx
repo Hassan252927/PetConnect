@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector } from '../hooks/useRedux';
+import { useAppSelector, useAppDispatch } from '../hooks/useRedux';
+import { fetchUserChats } from '../store/chatSlice';
 import Layout from '../components/layout/Layout';
 import ChatList from '../components/chat/ChatList';
 import ChatWindow from '../components/chat/ChatWindow';
 
 const Chat: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.user);
+  const { chats } = useAppSelector((state) => state.chat);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   
   // Redirect if not logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (!currentUser) {
       navigate('/login');
+    } else if (chats.length === 0) {
+      // Load chats when user is authenticated
+      dispatch(fetchUserChats(currentUser._id));
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, dispatch, chats.length]);
   
   if (!currentUser) {
     return null;

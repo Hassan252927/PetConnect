@@ -94,15 +94,15 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const currentBreeds = filters.animalType ? breedOptions[filters.animalType as keyof typeof breedOptions] || [] : [];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Filter Pets</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700">
+      <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Filter Pets</h2>
       
       {/* Animal Type Section */}
-      <div className="mb-4 border-b border-gray-200 pb-3">
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
         <div className="flex justify-between items-center cursor-pointer" onClick={() => handleExpandSection('animalType')}>
-          <h3 className="font-medium text-gray-700">Animal Type</h3>
+          <h3 className="font-medium text-gray-700 dark:text-gray-300">Animal Type</h3>
           <div className={`transform transition-transform duration-300 ${expandedSections.animalType ? 'rotate-180' : ''}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </div>
@@ -117,7 +117,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 className={`px-3 py-2 rounded-md text-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 ${
                   filters.animalType === type 
                     ? 'bg-primary text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 {type}
@@ -128,11 +128,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       </div>
       
       {/* Breed Section */}
-      <div className="mb-4 border-b border-gray-200 pb-3">
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
         <div className="flex justify-between items-center cursor-pointer" onClick={() => handleExpandSection('breed')}>
-          <h3 className="font-medium text-gray-700">Breed</h3>
+          <h3 className="font-medium text-gray-700 dark:text-gray-300">Breed</h3>
           <div className={`transform transition-transform duration-300 ${expandedSections.breed ? 'rotate-180' : ''}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </div>
@@ -150,7 +150,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                       className={`px-3 py-2 rounded-md text-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 ${
                         filters.breed === breed 
                           ? 'bg-primary text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       {breed}
@@ -159,18 +159,18 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500 text-sm italic">Please select an animal type first</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm italic">Please select an animal type first</p>
             )}
           </div>
         )}
       </div>
       
       {/* Characteristics Section */}
-      <div className="mb-4 border-b border-gray-200 pb-3">
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700 pb-3">
         <div className="flex justify-between items-center cursor-pointer" onClick={() => handleExpandSection('characteristics')}>
-          <h3 className="font-medium text-gray-700">Characteristics</h3>
+          <h3 className="font-medium text-gray-700 dark:text-gray-300">Characteristics</h3>
           <div className={`transform transition-transform duration-300 ${expandedSections.characteristics ? 'rotate-180' : ''}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </div>
@@ -179,7 +179,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {expandedSections.characteristics && (
           <div className="mt-3 space-y-4 animate-fadeIn">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Age</label>
               <div className="grid grid-cols-2 gap-2">
                 {ageOptions.map(age => (
                   <button
@@ -188,7 +188,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     className={`px-3 py-2 rounded-md text-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 ${
                       filters.age === age 
                         ? 'bg-primary text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {age}
@@ -198,7 +198,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Size</label>
               <div className="grid grid-cols-2 gap-2">
                 {sizeOptions.map(size => (
                   <button
@@ -207,7 +207,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     className={`px-3 py-2 rounded-md text-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 ${
                       filters.size === size 
                         ? 'bg-primary text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {size}
@@ -217,7 +217,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
               <div className="grid grid-cols-2 gap-2">
                 {genderOptions.map(gender => (
                   <button
@@ -226,7 +226,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                     className={`px-3 py-2 rounded-md text-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 ${
                       filters.gender === gender 
                         ? 'bg-primary text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {gender}
@@ -239,11 +239,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       </div>
       
       {/* Location Section */}
-      <div className="mb-4 border-b border-gray-200 pb-3">
+      <div className="mb-4">
         <div className="flex justify-between items-center cursor-pointer" onClick={() => handleExpandSection('location')}>
-          <h3 className="font-medium text-gray-700">Location</h3>
+          <h3 className="font-medium text-gray-700 dark:text-gray-300">Location</h3>
           <div className={`transform transition-transform duration-300 ${expandedSections.location ? 'rotate-180' : ''}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </div>
@@ -251,35 +251,30 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         
         {expandedSections.location && (
           <div className="mt-3 animate-fadeIn">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code or City</label>
-            <input
-              type="text"
-              placeholder="Enter zip code or city"
-              value={filters.location}
-              onChange={(e) => handleFilterChange('location', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 hover:shadow"
-            />
+            <div className="mb-3">
+              <input
+                type="text"
+                placeholder="Enter city, state, or ZIP"
+                value={filters.location}
+                onChange={(e) => handleFilterChange('location', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:text-white"
+              />
+            </div>
           </div>
         )}
       </div>
       
       {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex justify-between pt-2">
         <button
           onClick={handleResetFilters}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-all duration-200 hover:shadow-md hover:-translate-y-1 active:scale-95"
+          className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white font-medium"
         >
-          <span className="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Reset
-          </span>
+          Reset Filters
         </button>
-        
         <button
           onClick={handleApplyFilters}
-          className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-1 active:scale-95"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
         >
           Apply Filters
         </button>
