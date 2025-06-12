@@ -50,11 +50,13 @@ export const sendMessage = createAsyncThunk(
       senderName: string;
       senderProfilePic: string;
       content: string;
+      media?: string;
     },
     { rejectWithValue }
   ) => {
     try {
-      return await sendNewMessage(messageData);
+      const sentMessage = await sendNewMessage(messageData);
+      return sentMessage;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to send message. Please try again.');
     }
@@ -180,7 +182,7 @@ const chatSlice = createSlice({
       
       // Send message
       .addCase(sendMessage.pending, (state) => {
-        state.isLoading = true;
+        // We don't set isLoading to true here to avoid blocking the UI
         state.error = null;
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
@@ -188,13 +190,21 @@ const chatSlice = createSlice({
         const message = action.payload;
         const { chatID } = message;
         
+        // Find the chat and update it with the new message
         const chat = state.chats.find((c) => c._id === chatID);
         if (chat) {
+          if (!chat.messages) {
+            chat.messages = [];
+          }
           chat.messages.push(message);
           chat.lastMessage = message;
         }
         
+        // Also update the current chat if it's the same one
         if (state.currentChat && state.currentChat._id === chatID) {
+          if (!state.currentChat.messages) {
+            state.currentChat.messages = [];
+          }
           state.currentChat.messages.push(message);
           state.currentChat.lastMessage = message;
         }

@@ -8,6 +8,7 @@ export interface Message {
   senderName: string;
   senderProfilePic: string;
   content: string;
+  media?: string; // URL to media file (optional)
   timestamp: string;
   isRead: boolean;
 }
@@ -99,6 +100,7 @@ const mockMessages: { [key: string]: Message[] } = {
       senderName: 'john_doe',
       senderProfilePic: mockUsers[0].profilePic,
       content: 'Hi Jane! Check out my new puppy!',
+      media: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
       timestamp: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
       isRead: true,
     },
@@ -110,6 +112,17 @@ const mockMessages: { [key: string]: Message[] } = {
       senderProfilePic: mockUsers[1].profilePic,
       content: 'Hey, cute dog!',
       timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+      isRead: false,
+    },
+    {
+      _id: 'message1_3',
+      chatID: 'chat1',
+      sender: 'user2',
+      senderName: 'jane_smith',
+      senderProfilePic: mockUsers[1].profilePic,
+      content: 'Here\'s my cat!',
+      media: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+      timestamp: new Date(Date.now() - 3000000).toISOString(), // 50 minutes ago
       isRead: false,
     },
   ],
@@ -144,6 +157,17 @@ const mockMessages: { [key: string]: Message[] } = {
       timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
       isRead: true,
     },
+    {
+      _id: 'message2_4',
+      chatID: 'chat2',
+      sender: 'user3',
+      senderName: 'mike_johnson',
+      senderProfilePic: mockUsers[2].profilePic,
+      content: 'I take my pets to Dr. Smith at PetCare Clinic. Here\'s their website.',
+      media: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+      timestamp: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+      isRead: true,
+    },
   ],
   chat3: [
     {
@@ -154,6 +178,17 @@ const mockMessages: { [key: string]: Message[] } = {
       senderProfilePic: mockUsers[3].profilePic,
       content: 'Your cat is adorable! What breed is it?',
       timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+      isRead: true,
+    },
+    {
+      _id: 'message3_2',
+      chatID: 'chat3',
+      sender: 'user1',
+      senderName: 'john_doe',
+      senderProfilePic: mockUsers[0].profilePic,
+      content: 'It\'s a Maine Coon! Here are some more pictures.',
+      media: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
+      timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
       isRead: true,
     },
   ],
@@ -224,7 +259,12 @@ export const sendNewMessage = async (message: Omit<Message, '_id' | 'timestamp' 
       chat.lastMessage = newMessage;
     }
     
-    return newMessage;
+    // Return the new message after a small delay to simulate network latency
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(newMessage);
+      }, 300);
+    });
   }
 };
 

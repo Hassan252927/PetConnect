@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { fetchFeedPosts } from '../store/postSlice';
@@ -28,9 +28,6 @@ const Home: React.FC = () => {
     gender: '',
     location: ''
   });
-  
-  // Filtered posts
-  const [filteredPosts, setFilteredPosts] = useState<typeof feedPosts>([]);
   const [activeTab, setActiveTab] = useState('latest');
   
   useEffect(() => {
@@ -40,8 +37,8 @@ const Home: React.FC = () => {
     }
   }, [dispatch, currentUser, pets.length]);
   
-  // Apply filters and search to posts
-  useEffect(() => {
+  // Apply filters and search to posts using useMemo to prevent unnecessary recalculations
+  const filteredPosts = useMemo(() => {
     let filtered = [...feedPosts];
     
     // Apply search
@@ -67,31 +64,29 @@ const Home: React.FC = () => {
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     
-    setFilteredPosts(filtered);
+    return filtered;
   }, [feedPosts, searchQuery, activeFilters, activeTab]);
   
-  const handleViewPost = (post: typeof feedPosts[0]) => {
+  const handleViewPost = useCallback((post: typeof feedPosts[0]) => {
     navigate(`/posts/${post._id}`);
-  };
+  }, [navigate]);
   
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-  };
+  }, []);
   
-  const handleApplyFilters = (filters: FilterOptions) => {
+  const handleApplyFilters = useCallback((filters: FilterOptions) => {
     setActiveFilters(filters);
     setShowFilters(false);
-  };
+  }, []);
 
   // Featured pet stats
-  const featuredStats = [
+  const featuredStats = useMemo(() => [
     { label: 'Pet Owners', value: '8,500+', icon: '👤', color: 'bg-blue-100 text-blue-800' },
     { label: 'Pets', value: '12,000+', icon: '🐾', color: 'bg-purple-100 text-purple-800' },
     { label: 'Posts', value: '35,000+', icon: '📸', color: 'bg-pink-100 text-pink-800' },
     { label: 'Communities', value: '150+', icon: '🏠', color: 'bg-green-100 text-green-800' },
-  ];
-
-  // No quick nav items
+  ], []);
   
   return (
     <Layout>
@@ -198,106 +193,56 @@ const Home: React.FC = () => {
                 </span>
               )}
             </button>
+            
+            <button
+              onClick={() => setShowCreatePost(true)}
+              className="w-full md:w-auto whitespace-nowrap px-4 py-2 bg-primary text-white rounded-lg flex items-center justify-center hover:bg-opacity-90 transition-all duration-200 hover:shadow"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create Post
+            </button>
           </div>
+          
+          {/* Filter Panel */}
           {showFilters && (
-            <div className="mt-4 animate-fadeIn">
-              <FilterPanel onApplyFilters={handleApplyFilters} initialFilters={activeFilters} />
+            <div className="mt-4 animate-slideDown">
+              <FilterPanel 
+                onApplyFilters={handleApplyFilters} 
+                initialFilters={activeFilters}
+              />
             </div>
+          )}
+          
+          {/* Create Post Modal */}
+          {showCreatePost && (
+            <PostForm 
+              onSuccess={() => setShowCreatePost(false)} 
+              onCancel={() => setShowCreatePost(false)} 
+            />
           )}
         </div>
       )}
       
-      {/* Main content starts after this comment */}
-      
-      {/* For non-logged in users, show features section instead of feed */}
-      {!currentUser ? (
-        <div className="mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">Why Pet Lovers Choose PetConnect</h2>
-            <p className="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">Join thousands of pet owners who share special moments, get advice, and connect with other animal enthusiasts.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-3xl">
-                🤝
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">Connect with Pet Lovers</h3>
-              <p className="text-gray-600 dark:text-gray-300">Join a community of pet enthusiasts who share your passion for animals. Make friends and share experiences.</p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-3xl">
-                📚
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">Learn Pet Care Tips</h3>
-              <p className="text-gray-600 dark:text-gray-300">Access a wealth of knowledge from experienced pet owners. Get advice on nutrition, training, and health care.</p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-3xl">
-                📸
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">Share Special Moments</h3>
-              <p className="text-gray-600 dark:text-gray-300">Capture and share your pet's cutest, funniest, and most memorable moments with a community that appreciates them.</p>
-            </div>
-          </div>
-          
-          <div className="mt-12 text-center">
-            <button 
-              onClick={() => navigate('/register')}
-              className="px-8 py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold rounded-full hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1"
-            >
-              Join Our Community Today
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Main Content for logged-in users */
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">
-            {/* Create Post */}
-            {currentUser && (
-              <div className="mb-6">
-                {!showCreatePost ? (
-                  <button
-                    onClick={() => setShowCreatePost(true)}
-                    className="w-full bg-white rounded-lg shadow-md p-4 text-left flex items-center text-gray-600 hover:bg-gray-50 transition-all duration-200 hover:shadow-lg"
-                  >
-                    <img
-                      src={currentUser.profilePic}
-                      alt={currentUser.username}
-                      className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-primary"
-                    />
-                    <span className="text-gray-500">Share a moment with your pet...</span>
-                    <div className="ml-auto flex space-x-2">
-                      <span className="hidden md:inline-flex items-center text-xs text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Photo
-                      </span>
-                      <span className="hidden md:inline-flex items-center text-xs text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Video
-                      </span>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-lg p-4 mb-6 animate-fadeIn">
-                    <PostForm
-                      onSuccess={() => setShowCreatePost(false)}
-                      onCancel={() => setShowCreatePost(false)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Feed Tabs */}
-            <div className="mb-6 bg-white rounded-lg shadow-md p-1 flex">
+      {/* Main Content */}
+      {currentUser && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Posts Feed */}
+          <div className="lg:col-span-2">
+            {/* Tabs */}
+            <div className="bg-white rounded-lg shadow-md p-2 mb-6 flex">
               <button
                 className={`flex-1 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
                   activeTab === 'latest'
@@ -504,4 +449,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home; 
+export default React.memo(Home); 

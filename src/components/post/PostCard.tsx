@@ -1,46 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Post, likePost, addComment } from '../../store/postSlice';
-import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
-import { savePost, unsavePost } from '../../store/userSlice';
+import { Post, addComment } from '../../store/postSlice';
+import { useAppDispatch } from '../../hooks/useRedux';
 import { ExtendedPost } from '../../types/post';
+import { useShallowEqualSelector } from '../../hooks/useShallowEqualSelector';
+import { usePostActions } from '../../providers/PostActionsProvider';
 
 interface PostCardProps {
   post: Post | ExtendedPost;
   onView?: (post: Post | ExtendedPost) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
+const PostCard: React.FC<PostCardProps> = memo(({ post, onView }) => {
   const dispatch = useAppDispatch();
-  const { currentUser } = useAppSelector((state) => state.user);
+  
+  // Use shallow equality selector for currentUser to prevent unnecessary re-renders
+  const currentUser = useShallowEqualSelector((state) => state.user.currentUser);
+  
+  // Use post actions context
+  const { isSaved, isLiked, toggleSavePost, toggleLikePost } = usePostActions();
+  
   const [comment, setComment] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes.length);
+  const [localComments, setLocalComments] = useState(post.comments);
+  const shareOptionsRef = useRef<HTMLDivElement>(null);
+  
+  // Update local comments when post.comments changes
+  useEffect(() => {
+    setLocalComments(post.comments);
+  }, [post.comments]);
 
-  const isLiked = currentUser && post.likes.includes(currentUser._id);
-  const isSaved = currentUser && currentUser.savedPosts?.includes(post._id);
-
-  const handleLikeToggle = () => {
+  // Handle like toggle with optimistic UI update
+  const handleLikeToggle = useCallback(() => {
     if (!currentUser) return;
     
-    dispatch(likePost({ postID: post._id, userID: currentUser._id }));
-  };
-
-  const handleSaveToggle = () => {
-    if (!currentUser) return;
+    // Optimistically update UI
+    setLikesCount(prev => isLiked(post._id) ? prev - 1 : prev + 1);
     
-    if (isSaved) {
-      dispatch(unsavePost(post._id));
-    } else {
-      dispatch(savePost(post._id));
-    }
-  };
+    // Use context action
+    toggleLikePost(post._id, currentUser._id);
+  }, [currentUser, toggleLikePost, post._id, isLiked]);
 
-  const handleAddComment = (e: React.FormEvent) => {
+  // Handle save toggle
+  const handleSaveToggle = useCallback(() => {
+    if (!currentUser) return;
+    toggleSavePost(post._id, currentUser._id);
+  }, [currentUser, toggleSavePost, post._id]);
+
+  const handleAddComment = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     if (!currentUser || !comment.trim()) return;
     
+    // Create a temporary comment for immediate UI update
+    const tempComment = {
+      _id: `temp_${Date.now()}`,
+      postID: post._id,
+      userID: currentUser._id,
+      username: currentUser.username,
+      profilePic: currentUser.profilePic,
+      content: comment.trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Update local state immediately
+    setLocalComments(prev => [...prev, tempComment]);
+    
+    // Dispatch action
     dispatch(
       addComment({
         postID: post._id,
@@ -52,16 +82,67 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
     );
     
     setComment('');
-  };
+  }, [comment, currentUser, dispatch, post._id]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-  };
+  }, []);
+
+  const handleShare = useCallback((platform: string) => {
+    // Create the post URL - adjust this based on your routing structure
+    const postUrl = `${window.location.origin}/posts/${post._id}`;
+    
+    // Handle different sharing platforms
+    switch (platform) {
+      case 'whatsapp':
+        window.open(`https://api.whatsapp.com/send?text=Check out this pet post: ${encodeURIComponent(postUrl)}`, '_blank');
+        break;
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=Check out this adorable pet post!`, '_blank');
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(postUrl)
+          .then(() => {
+            // Show a temporary notification that the link was copied
+            alert('Link copied to clipboard!');
+          })
+          .catch(err => {
+            console.error('Could not copy text: ', err);
+          });
+        break;
+      default:
+        break;
+    }
+    
+    // Close the share options after sharing
+    setShowShareOptions(false);
+  }, [post._id]);
+
+  // Close share options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shareOptionsRef.current && !shareOptionsRef.current.contains(event.target as Node)) {
+        setShowShareOptions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Determine if post is liked and saved
+  const postIsLiked = isLiked(post._id);
+  const postIsSaved = isSaved(post._id);
 
   return (
     <div 
@@ -98,7 +179,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
         </div>
       </div>
       
-      <div 
+      <div
         className="relative pb-[56.25%] overflow-hidden cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -125,12 +206,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleLikeToggle}
-              className={`flex items-center ${isLiked ? 'text-red-500' : 'text-gray-600'} hover:text-opacity-80 transition-transform active:scale-90`}
+              className={`flex items-center ${postIsLiked ? 'text-red-500' : 'text-gray-600'} hover:text-opacity-80 transition-transform active:scale-90`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className={`h-6 w-6 mr-1 ${isLiked ? 'animate-heartBeat' : ''}`}
-                fill={isLiked ? 'currentColor' : 'none'}
+                className={`h-6 w-6 mr-1 ${postIsLiked ? 'animate-heartBeat' : ''}`}
+                fill={postIsLiked ? 'currentColor' : 'none'}
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
@@ -141,7 +222,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
-              <span>{post.likes.length}</span>
+              <span>{likesCount}</span>
             </button>
             
             <button
@@ -162,47 +243,112 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <span>{post.commentsCount || post.comments.length}</span>
+              <span>{localComments.length}</span>
             </button>
             
-            <button className="flex items-center text-gray-600 hover:text-primary transition-colors duration-200 active:scale-90">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="relative">
+              <button 
+                onClick={() => setShowShareOptions(!showShareOptions)}
+                className="flex items-center text-gray-600 hover:text-primary transition-colors duration-200 active:scale-90"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                />
-              </svg>
-              <span>Share</span>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
+                </svg>
+                <span>Share</span>
+              </button>
+              
+              {showShareOptions && (
+                <div 
+                  ref={shareOptionsRef}
+                  className="absolute left-0 bottom-full mb-2 bg-white rounded-lg shadow-lg p-2 z-10 min-w-[180px] animate-fadeIn"
+                >
+                  <div className="flex flex-col space-y-1">
+                    <button 
+                      onClick={() => handleShare('whatsapp')}
+                      className="flex items-center p-2 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <span className="w-6 h-6 mr-2 flex items-center justify-center text-green-600">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.127 18.12c-.282.401-.837.682-1.478.696-1.013.03-1.876-.328-2.685-.638-1.264-.483-2.415-1.238-3.365-2.144-1.868-1.77-3.24-4.018-3.5-6.575-.087-.858.184-1.724.909-2.272.279-.21.563-.276.856-.276h.915c.333.014.635.19.817.507.204.357.432.954.562 1.366.08.254.033.504-.124.77-.16.271-.369.489-.631.676-.104.074-.152.173-.088.299.459.92 1.087 1.747 1.947 2.357.374.266.746.553 1.174.731.145.06.277.01.371-.084.217-.212.45-.4.646-.635.19-.229.403-.298.677-.191.269.108.558.235.835.374.257.13.512.275.729.463.293.255.406.61.376.981-.064.756-.27 1.142-.535 1.432z" />
+                        </svg>
+                      </span>
+                      WhatsApp
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleShare('facebook')}
+                      className="flex items-center p-2 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <span className="w-6 h-6 mr-2 flex items-center justify-center text-blue-600">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                        </svg>
+                      </span>
+                      Facebook
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleShare('twitter')}
+                      className="flex items-center p-2 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <span className="w-6 h-6 mr-2 flex items-center justify-center text-blue-400">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                          <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
+                        </svg>
+                      </span>
+                      Twitter
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleShare('copy')}
+                      className="flex items-center p-2 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <span className="w-6 h-6 mr-2 flex items-center justify-center text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                        </svg>
+                      </span>
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
-            <button
-              onClick={handleSaveToggle}
-            className={`text-gray-600 hover:text-primary ${isSaved ? 'text-primary' : ''} transition-all duration-200 hover:-translate-y-1 active:scale-90`}
+          <button
+            onClick={handleSaveToggle}
+            className={`text-gray-600 ${postIsSaved ? 'text-primary' : ''} transition-all duration-200 hover:-translate-y-1 active:scale-90`}
+            aria-label={postIsSaved ? "Unsave post" : "Save post"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-6 w-6 ${postIsSaved ? 'animate-pulse' : ''}`}
+              fill={postIsSaved ? 'currentColor' : 'none'}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={postIsSaved ? 0 : 2}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill={isSaved ? 'currentColor' : 'none'}
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                />
-              </svg>
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+              />
+            </svg>
+          </button>
         </div>
         
         <div className="mb-4">
@@ -231,9 +377,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
           >
             <h4 className="font-medium text-gray-800 mb-2">Comments</h4>
             
-            {post.comments.length > 0 ? (
+            {localComments.length > 0 ? (
               <div className="space-y-3 max-h-60 overflow-y-auto">
-                {post.comments.map((comment) => (
+                {localComments.map((comment) => (
                   <div 
                     key={comment._id} 
                     className="flex items-start animate-fadeIn"
@@ -293,6 +439,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onView }) => {
       </div>
     </div>
   );
-};
+});
 
 export default PostCard; 
