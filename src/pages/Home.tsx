@@ -61,7 +61,7 @@ const Home: React.FC = () => {
     if (activeTab === 'trending') {
       filtered.sort((a, b) => b.likes.length - a.likes.length);
     } else if (activeTab === 'latest') {
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }
     
     return filtered;

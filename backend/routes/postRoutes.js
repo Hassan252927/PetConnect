@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('userID petID comments likes')
-      .sort({ createdAt: -1 });
+      .sort({ timestamp: -1 });
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -20,7 +20,7 @@ router.get('/user/:userID', async (req, res) => {
     const { userID } = req.params;
     const posts = await Post.find({ userID })
       .populate('userID petID comments likes')
-      .sort({ createdAt: -1 });
+      .sort({ timestamp: -1 });
     
     if (!posts || posts.length === 0) {
       return res.status(404).json({ 
@@ -52,7 +52,18 @@ router.get('/:id', async (req, res) => {
 // Create a new post
 router.post('/', async (req, res) => {
   try {
-    const post = new Post(req.body);
+    const newPostData = {
+      userID: req.body.userID,
+      username: req.body.username,
+      profilePic: req.body.userProfilePic,
+      petID: req.body.petID,
+      petName: req.body.petName,
+      media: req.body.media,
+      caption: req.body.caption,
+      tags: req.body.tags,
+    };
+    
+    const post = new Post(newPostData);
     await post.save();
     res.status(201).json(post);
   } catch (err) {

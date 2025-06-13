@@ -12,12 +12,12 @@ interface PostCardProps {
 }
 
 const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
+  console.log('PostCard received post:', post);
+
   const dispatch = useAppDispatch();
   
-  // Use shallow equality selector for currentUser to prevent unnecessary re-renders
   const currentUser = useShallowEqualSelector((state) => state.user.currentUser);
   
-  // Use post actions context
   const { isSaved, isLiked, toggleSavePost, toggleLikePost } = usePostActions();
   
   const [comment, setComment] = useState('');
@@ -28,23 +28,18 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const [localComments, setLocalComments] = useState(post.comments);
   const shareOptionsRef = useRef<HTMLDivElement>(null);
   
-  // Update local comments when post.comments changes
   useEffect(() => {
     setLocalComments(post.comments);
   }, [post.comments]);
 
-  // Handle like toggle with optimistic UI update
   const handleLikeToggle = useCallback(() => {
     if (!currentUser) return;
     
-    // Optimistically update UI
     setLikesCount(prev => isLiked(post._id) ? prev - 1 : prev + 1);
     
-    // Use context action
     toggleLikePost(post._id, currentUser._id);
   }, [currentUser, toggleLikePost, post._id, isLiked]);
 
-  // Handle save toggle
   const handleSaveToggle = useCallback(() => {
     if (!currentUser) return;
     toggleSavePost(post._id, currentUser._id);
@@ -55,7 +50,6 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
     
     if (!currentUser || !comment.trim()) return;
     
-    // Create a temporary comment for immediate UI update
     const tempComment = {
       _id: `temp_${Date.now()}`,
       postID: post._id,
@@ -67,10 +61,8 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
       updatedAt: new Date().toISOString(),
     };
     
-    // Update local state immediately
     setLocalComments(prev => [...prev, tempComment]);
     
-    // Dispatch action with correct parameters
     dispatch(
       addComment({
         postID: post._id,
@@ -82,20 +74,9 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
     setComment('');
   }, [comment, currentUser, dispatch, post._id]);
 
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }, []);
-
   const handleShare = useCallback((platform: string) => {
-    // Create the post URL - adjust this based on your routing structure
     const postUrl = `${window.location.origin}/posts/${post._id}`;
     
-    // Handle different sharing platforms
     switch (platform) {
       case 'whatsapp':
         window.open(`https://api.whatsapp.com/send?text=Check out this pet post: ${encodeURIComponent(postUrl)}`, '_blank');
@@ -109,7 +90,6 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
       case 'copy':
         navigator.clipboard.writeText(postUrl)
           .then(() => {
-            // Show a temporary notification that the link was copied
             alert('Link copied to clipboard!');
           })
           .catch(err => {
@@ -120,11 +100,9 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
         break;
     }
     
-    // Close the share options after sharing
     setShowShareOptions(false);
   }, [post._id]);
 
-  // Close share options when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (shareOptionsRef.current && !shareOptionsRef.current.contains(event.target as Node)) {
@@ -138,9 +116,14 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
     };
   }, []);
 
-  // Determine if post is liked and saved
   const postIsLiked = isLiked(post._id);
   const postIsSaved = isSaved(post._id);
+
+  // Directly access properties from the post object with fallbacks
+  const displayUsername = post.username || 'Unknown User';
+  const displayProfilePic = post.profilePic || '/default-profile.png';
+  const displayPetName = post.petName || 'No Pet Info';
+  const displayTimestamp = post.timestamp ? new Date(post.timestamp).toLocaleString() : 'Invalid Date';
 
   return (
     <div 
@@ -149,20 +132,24 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center">
           <img
-            src={post.profilePic}
-            alt={post.username}
+            src={displayProfilePic}
+            alt={displayUsername}
             className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-primary transition-transform duration-200 hover:scale-110"
           />
           <div>
             <Link to={`/profile/${post.userID}`} className="font-medium text-gray-800 hover:text-primary transition-colors duration-200">
-              {post.username}
+              {displayUsername}
             </Link>
             <div className="flex items-center text-gray-500 text-sm">
-              <span className="mr-2">{formatDate(post.createdAt)}</span>
+              <span className="mr-2">{displayTimestamp}</span>
               <span>•</span>
-              <Link to={`/pets/${post.petID}`} className="ml-2 hover:text-primary transition-colors duration-200">
-                {post.petName}
-              </Link>
+              {post.petID ? (
+                <Link to={`/pets/${post.petID}`} className="ml-2 hover:text-primary transition-colors duration-200">
+                  {displayPetName}
+                </Link>
+              ) : (
+                <span className="ml-2 text-gray-500">{displayPetName}</span>
+              )}
             </div>
           </div>
         </div>
@@ -184,7 +171,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
         onClick={() => onViewPost && onViewPost(post)}
       >
         <img
-          src={post.media}
+          src={post.media || ''}
           alt={post.caption}
           className={`absolute h-full w-full object-cover transition-transform duration-500 ${isHovered ? 'scale-105' : ''}`}
         />
@@ -393,7 +380,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
                           {comment.username}
                         </Link>
                         <span className="text-xs text-gray-500 ml-2">
-                          {formatDate(comment.createdAt)}
+                          {new Date(comment.createdAt).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-gray-700 mt-1">{comment.content}</p>

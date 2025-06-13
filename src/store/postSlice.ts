@@ -11,7 +11,18 @@ import {
   deleteComment as deleteCommentAPI 
 } from '../services/postService';
 
-// Define types for post-related data
+// Define types for populated user and pet objects within a post
+export interface UserInPost {
+  _id: string;
+  username: string;
+  profilePic?: string;
+}
+
+export interface PetInPost {
+  _id: string;
+  name: string;
+}
+
 export interface Comment {
   _id: string;
   postID: string;
@@ -36,7 +47,7 @@ export interface Post {
   commentsCount: number;
   comments: Comment[];
   tags: string[];
-  createdAt: string;
+  timestamp: string; // Changed from createdAt to timestamp
   updatedAt: string;
 }
 
@@ -105,7 +116,7 @@ const generateMockPosts = (currentUserID: string, pets: Pet[]): Post[] => {
         },
       ],
       tags: ['pet', pet.animal.toLowerCase(), 'cute'],
-      createdAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 7)).toISOString(),
+      timestamp: new Date(Date.now() - 86400000 * (1 + Math.random() * 7)).toISOString(),
       updatedAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 7)).toISOString(),
     });
   });
@@ -139,14 +150,14 @@ const generateMockPosts = (currentUserID: string, pets: Pet[]): Post[] => {
         },
       ],
       tags: [i % 2 === 0 ? 'dog' : 'cat', 'petsofinstagram'],
-      createdAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 14)).toISOString(),
+      timestamp: new Date(Date.now() - 86400000 * (1 + Math.random() * 14)).toISOString(),
       updatedAt: new Date(Date.now() - 86400000 * (1 + Math.random() * 14)).toISOString(),
     });
   }
   
   // Sort by creation date (newest first)
   return mockPosts.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 };
 
