@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
-import { createPost } from '../../store/postSlice';
+import { createPost, fetchFeedPosts } from '../../store/postSlice';
 import { Pet, createPet } from '../../store/petSlice';
 import ImageUpload from '../common/ImageUpload';
 import { simulateImageUpload } from '../../services/uploadService';
@@ -37,11 +37,25 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!currentUser || !selectedPet) return;
+    if (!currentUser) {
+      setError('You must be logged in to create a post');
+      return;
+    }
+    
+    if (!selectedPet) {
+      setError('Please select a pet for your post');
+      return;
+    }
+    
+    if (!caption.trim()) {
+      setError('Please add a caption to your post');
+      return;
+    }
     
     try {
       setIsUploading(true);
       setUploadError('');
+      setError(null);
       
       let finalMediaUrl = media;
       
@@ -57,24 +71,49 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
         }
       }
       
+      // Ensure the payload consistently uses 'profilePic'
       const postData = {
         userID: currentUser._id,
         username: currentUser.username,
         profilePic: currentUser.profilePic || 'https://via.placeholder.com/50',
         petID: selectedPet._id,
         petName: selectedPet.name,
-        media: finalMediaUrl,
-        caption,
-        tags: [selectedPet.animal.toLowerCase(), selectedPet.breed.toLowerCase(), 'pet'],
+        media: finalMediaUrl || '',
+        caption: caption.trim(),
+        tags: [selectedPet.animal.toLowerCase(), selectedPet.breed.toLowerCase(), 'pet']
       };
       
-      await dispatch(createPost(postData)).unwrap();
+      // Log the payload for debugging
+      console.log('Creating post with data:', postData);
+      
+      // Create the post
+      const result = await dispatch(createPost(postData)).unwrap();
+      console.log('Post created successfully:', result);
+      
+      // Fetch updated feed posts after successful creation
+      await dispatch(fetchFeedPosts({ userID: currentUser._id, pets: [] }));
       
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
-      console.error('Failed to create post', error);
+    } catch (error: any) {
+      console.error('Failed to create post:', error);
+      
+      // Handle specific error cases
+      if (error.errors) {
+        // Handle validation errors from the backend
+        const errorMessages = Object.entries(error.errors as Record<string, string[]>)
+          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+          .join('\n');
+        setError(errorMessages);
+      } else if (error.details) {
+        // Show detailed error message from backend
+        setError(`${error.message}\n${error.details}`);
+      } else if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Failed to create post. Please try again.');
+      }
     } finally {
       setIsUploading(false);
     }
@@ -187,6 +226,18 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Create a Post</h2>
       
       <form onSubmit={handleSubmit}>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600">
+            {error}
+          </div>
+        )}
+        
+        {uploadError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600">
+            {uploadError}
+          </div>
+        )}
+        
         {!createPetMode ? (
           <div className="mb-4">
             <label htmlFor="pet" className="block text-gray-700 font-medium mb-2">
@@ -322,9 +373,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
             onImageSelected={handleMediaSelected}
             label="Upload Photo/Video"
           />
-          {uploadError && (
-            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
-          )}
         </div>
         
         <div className="mb-6">
@@ -341,12 +389,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
             required
           ></textarea>
         </div>
-        
-        {error && (
-          <div className="mb-4 text-red-500 text-sm">
-            {error}
-          </div>
-        )}
         
         <div className="flex justify-end space-x-4">
           {onCancel && (
@@ -372,3 +414,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
 };
 
 export default PostForm; 
+
+
+

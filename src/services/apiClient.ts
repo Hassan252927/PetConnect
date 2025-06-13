@@ -1,7 +1,9 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 
 // Default API configuration
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Temporarily hardcoding API_URL to resolve ERR_NAME_NOT_RESOLVED due to environment variable issues.
+// In a production environment, this should be set via process.env.REACT_APP_API_URL.
+const API_URL = 'http://localhost:5000/api';
 const TIMEOUT = 15000; // 15 seconds
 
 export interface ApiErrorResponse {

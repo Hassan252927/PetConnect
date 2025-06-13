@@ -30,6 +30,7 @@ export const getUserPets = (userID: string): Promise<Pet[]> => {
  * @returns A promise that resolves to the pet
  */
 export const getPetById = (petID: string): Promise<Pet> => {
+  console.log(`Fetching pet with ID: ${petID}`);
   return apiClient.get(`/pets/${petID}`);
 };
 

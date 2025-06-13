@@ -210,10 +210,10 @@ export const createPost = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const newPost = await createPostAPI({
+      const apiPostData = {
         userID: postData.userID,
         username: postData.username,
-        userProfilePic: postData.profilePic,
+        profilePic: postData.profilePic,
         petID: postData.petID || '',
         petName: postData.petName || '',
         petImage: postData.media || '',
@@ -221,7 +221,10 @@ export const createPost = createAsyncThunk(
         caption: postData.caption,
         animal: postData.tags?.[0] || '',
         breed: postData.tags?.[1] || ''
-      });
+      };
+
+      console.log('Sending to API:', apiPostData);
+      const newPost = await createPostAPI(apiPostData);
       return newPost;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create post');

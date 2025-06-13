@@ -30,6 +30,7 @@ app.use('/api/pets', require('./routes/petRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/comments', require('./routes/commentRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
 
 // Default route
 app.get('/', (req, res) => {

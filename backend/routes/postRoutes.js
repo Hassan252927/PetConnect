@@ -6,8 +6,11 @@ const Post = require('../models/post');
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('userID petID comments likes')
+      .populate('userID', 'username profilePic')
+      .populate('petID', 'name animal breed')
       .sort({ timestamp: -1 });
+    
+    console.log('GET /posts - Populated posts sent:', JSON.stringify(posts, null, 2));
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -19,7 +22,8 @@ router.get('/user/:userID', async (req, res) => {
   try {
     const { userID } = req.params;
     const posts = await Post.find({ userID })
-      .populate('userID petID comments likes')
+      .populate('userID', 'username profilePic')
+      .populate('petID', 'name animal breed')
       .sort({ timestamp: -1 });
     
     if (!posts || posts.length === 0) {
@@ -28,6 +32,7 @@ router.get('/user/:userID', async (req, res) => {
       });
     }
     
+    console.log('GET /posts/user/:userID - Populated posts sent:', JSON.stringify(posts, null, 2));
     res.json(posts);
   } catch (err) {
     res.status(500).json({ 
@@ -41,8 +46,11 @@ router.get('/user/:userID', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate('userID petID comments likes');
+      .populate('userID', 'username profilePic')
+      .populate('petID', 'name animal breed');
     if (!post) return res.status(404).json({ message: 'Post not found' });
+    
+    console.log('GET /posts/:id - Populated post sent:', JSON.stringify(post, null, 2));
     res.json(post);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -52,10 +60,12 @@ router.get('/:id', async (req, res) => {
 // Create a new post
 router.post('/', async (req, res) => {
   try {
+    console.log('POST /posts - Received request body:', JSON.stringify(req.body, null, 2));
+    
     const newPostData = {
       userID: req.body.userID,
       username: req.body.username,
-      profilePic: req.body.userProfilePic,
+      profilePic: req.body.profilePic,
       petID: req.body.petID,
       petName: req.body.petName,
       media: req.body.media,
@@ -63,11 +73,30 @@ router.post('/', async (req, res) => {
       tags: req.body.tags,
     };
     
+    console.log('POST /posts - Transformed data:', JSON.stringify(newPostData, null, 2));
+    
     const post = new Post(newPostData);
+    
+    // Validate the post before saving
+    const validationError = post.validateSync();
+    if (validationError) {
+      console.error('POST /posts - Validation error:', validationError);
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: validationError.message,
+        errors: validationError.errors 
+      });
+    }
+    
     await post.save();
+    console.log('POST /posts - Successfully created post:', post._id);
     res.status(201).json(post);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('POST /posts - Error:', err);
+    res.status(400).json({ 
+      error: err.message,
+      details: err.errors || err.stack
+    });
   }
 });
 

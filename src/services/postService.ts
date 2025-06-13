@@ -8,7 +8,7 @@ export interface CreatePostRequest {
   petName: string;
   petImage: string;
   username: string;
-  userProfilePic: string;
+  profilePic: string;
   media: string;
   caption: string;
   animal: string;
@@ -45,6 +45,7 @@ export const getPostById = (postID: string): Promise<Post> => {
  * @returns A promise that resolves to the created post
  */
 export const createPost = (postData: CreatePostRequest): Promise<Post> => {
+  console.log('postService.createPost - Request payload:', JSON.stringify(postData, null, 2));
   return apiClient.post('/posts', postData);
 };
 

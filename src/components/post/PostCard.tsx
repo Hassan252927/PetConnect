@@ -5,6 +5,7 @@ import { useAppDispatch } from '../../hooks/useRedux';
 import { ExtendedPost } from '../../types/post';
 import { useShallowEqualSelector } from '../../hooks/useShallowEqualSelector';
 import { usePostActions } from '../../providers/PostActionsProvider';
+import { getPetById } from '../../services/petService';
 
 interface PostCardProps {
   post: Post | ExtendedPost;
@@ -28,9 +29,38 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const [localComments, setLocalComments] = useState(post.comments);
   const shareOptionsRef = useRef<HTMLDivElement>(null);
   
+  const [fetchedPetName, setFetchedPetName] = useState<string | null>(null);
+
   useEffect(() => {
     setLocalComments(post.comments);
   }, [post.comments]);
+
+  useEffect(() => {
+    let petIdToFetch: string | null = null;
+
+    if (post.petID) {
+      if (typeof post.petID === 'object' && post.petID !== null && '_id' in post.petID && typeof (post.petID as any)._id === 'string') {
+        petIdToFetch = (post.petID as any)._id;
+      } else if (typeof post.petID === 'string') {
+        petIdToFetch = post.petID;
+      }
+    }
+
+    if (petIdToFetch && !post.petName) {
+      const fetchPetDetails = async () => {
+        try {
+          const pet = await getPetById(petIdToFetch as string);
+          if (pet && pet.name) {
+            setFetchedPetName(pet.name);
+          }
+        } catch (error) {
+          console.error('Error fetching pet details:', error);
+          setFetchedPetName('No Pet Info');
+        }
+      };
+      fetchPetDetails();
+    }
+  }, [post.petID, post.petName]);
 
   const handleLikeToggle = useCallback(() => {
     if (!currentUser) return;
@@ -119,10 +149,9 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const postIsLiked = isLiked(post._id);
   const postIsSaved = isSaved(post._id);
 
-  // Directly access properties from the post object with fallbacks
   const displayUsername = post.username || 'Unknown User';
   const displayProfilePic = post.profilePic || '/default-profile.png';
-  const displayPetName = post.petName || 'No Pet Info';
+  const displayPetName = fetchedPetName || post.petName || 'No Pet Info';
   const displayTimestamp = post.timestamp ? new Date(post.timestamp).toLocaleString() : 'Invalid Date';
 
   return (
