@@ -31,10 +31,8 @@ const ExplorePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('latest');
   
   useEffect(() => {
-    if (currentUser) {
-      dispatch(fetchFeedPosts({ userID: currentUser._id, pets }));
-    }
-  }, [dispatch, currentUser, pets.length]);
+    dispatch(fetchFeedPosts({ pets }));
+  }, [dispatch, pets.length]);
   
   // Apply filters and search to posts
   useEffect(() => {
@@ -247,7 +245,7 @@ const ExplorePage: React.FC = () => {
             <PostCard
               key={post._id}
               post={post}
-              onView={handleViewPost}
+              onViewPost={handleViewPost}
             />
           ))}
         </div>

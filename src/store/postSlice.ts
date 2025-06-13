@@ -1,5 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Pet } from './petSlice';
+import { 
+  getFeedPosts, 
+  getPostById, 
+  createPost as createPostAPI, 
+  updatePost as updatePostAPI, 
+  deletePost as deletePostAPI, 
+  toggleLikePost as toggleLikePostAPI, 
+  addComment as addCommentAPI, 
+  deleteComment as deleteCommentAPI 
+} from '../services/postService';
 
 // Define types for post-related data
 export interface Comment {
@@ -151,13 +161,10 @@ const initialState: PostState = {
 // Async thunks
 export const fetchFeedPosts = createAsyncThunk(
   'post/fetchFeedPosts',
-  async ({ userID, pets }: { userID: string; pets: Pet[] }, { rejectWithValue }) => {
+  async ({ userID, pets }: { userID?: string; pets: Pet[] }, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.get('/posts/feed');
-      
-      // For now, we'll use mock data
-      return generateMockPosts(userID, pets);
+      const posts = await getFeedPosts(userID);
+      return posts;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch feed posts');
     }
@@ -166,14 +173,10 @@ export const fetchFeedPosts = createAsyncThunk(
 
 export const fetchUserPosts = createAsyncThunk(
   'post/fetchUserPosts',
-  async (userID: string, { rejectWithValue, getState }) => {
+  async (userID: string, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.get(`/users/${userID}/posts`);
-      
-      // For now, we'll filter feed posts for this user
-      const state = getState() as { post: PostState };
-      return state.post.feedPosts.filter(post => post.userID === userID);
+      const posts = await getFeedPosts(userID);
+      return posts;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch user posts');
     }
@@ -196,21 +199,18 @@ export const createPost = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.post('/posts', postData);
-      
-      // For now, we'll simulate creating a post
-      const newPost: Post = {
-        _id: `post_${Date.now()}`,
-        ...postData,
-        likes: [],
-        commentsCount: 0,
-        comments: [],
-        tags: postData.tags || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
+      const newPost = await createPostAPI({
+        userID: postData.userID,
+        username: postData.username,
+        userProfilePic: postData.profilePic,
+        petID: postData.petID || '',
+        petName: postData.petName || '',
+        petImage: postData.media || '',
+        media: postData.media || '',
+        caption: postData.caption,
+        animal: postData.tags?.[0] || '',
+        breed: postData.tags?.[1] || ''
+      });
       return newPost;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create post');
@@ -220,26 +220,10 @@ export const createPost = createAsyncThunk(
 
 export const likePost = createAsyncThunk(
   'post/likePost',
-  async ({ postID, userID }: { postID: string; userID: string }, { rejectWithValue, getState }) => {
+  async ({ postID, userID }: { postID: string; userID: string }, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // await apiClient.post(`/posts/${postID}/like`);
-      
-      // For now, we'll toggle the like in state
-      const state = getState() as { post: PostState };
-      const post = [...state.post.feedPosts, ...state.post.userPosts].find(p => p._id === postID);
-      
-      if (!post) {
-        throw new Error('Post not found');
-      }
-      
-      const isLiked = post.likes.includes(userID);
-      
-      return {
-        postID,
-        userID,
-        isLiked, // Current state (to be toggled)
-      };
+      const updatedPost = await toggleLikePostAPI(postID, userID);
+      return updatedPost;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to like post');
     }
@@ -249,28 +233,12 @@ export const likePost = createAsyncThunk(
 export const addComment = createAsyncThunk(
   'post/addComment',
   async (
-    commentData: {
-      postID: string;
-      userID: string;
-      username: string;
-      profilePic: string;
-      content: string;
-    },
+    { postID, userID, text }: { postID: string; userID: string; text: string },
     { rejectWithValue }
   ) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.post(`/posts/${commentData.postID}/comments`, commentData);
-      
-      // For now, we'll simulate adding a comment
-      const newComment: Comment = {
-        _id: `comment_${Date.now()}`,
-        ...commentData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      return newComment;
+      const updatedPost = await addCommentAPI(postID, userID, text);
+      return updatedPost;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to add comment');
     }
@@ -281,7 +249,13 @@ export const addComment = createAsyncThunk(
 const postSlice = createSlice({
   name: 'post',
   initialState,
-  reducers: {},
+  reducers: {
+    clearPosts: (state) => {
+      state.feedPosts = [];
+      state.userPosts = [];
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Fetch feed posts
@@ -313,68 +287,35 @@ const postSlice = createSlice({
       })
       
       // Create post
-      .addCase(createPost.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
       .addCase(createPost.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.feedPosts.unshift(action.payload); // Add to beginning of array
-        if (action.payload.userID === state.userPosts[0]?.userID) {
-          state.userPosts.unshift(action.payload);
-        }
-      })
-      .addCase(createPost.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
+        state.feedPosts.unshift(action.payload);
+        state.userPosts.unshift(action.payload);
       })
       
       // Like post
       .addCase(likePost.fulfilled, (state, action) => {
-        const { postID, userID, isLiked } = action.payload;
-        
-        // Update in feed posts
-        const feedPost = state.feedPosts.find(post => post._id === postID);
-        if (feedPost) {
-          if (isLiked) {
-            // Unlike
-            feedPost.likes = feedPost.likes.filter(id => id !== userID);
-          } else {
-            // Like
-            feedPost.likes.push(userID);
+        const updatedPost = action.payload;
+        const updatePostInArray = (posts: Post[]) => {
+          const index = posts.findIndex(p => p._id === updatedPost._id);
+          if (index !== -1) {
+            posts[index] = updatedPost;
           }
-        }
-        
-        // Update in user posts
-        const userPost = state.userPosts.find(post => post._id === postID);
-        if (userPost) {
-          if (isLiked) {
-            // Unlike
-            userPost.likes = userPost.likes.filter(id => id !== userID);
-          } else {
-            // Like
-            userPost.likes.push(userID);
-          }
-        }
+        };
+        updatePostInArray(state.feedPosts);
+        updatePostInArray(state.userPosts);
       })
       
       // Add comment
       .addCase(addComment.fulfilled, (state, action) => {
-        const comment = action.payload;
-        
-        // Update in feed posts
-        const feedPost = state.feedPosts.find(post => post._id === comment.postID);
-        if (feedPost) {
-          feedPost.comments.push(comment);
-          feedPost.commentsCount += 1;
-        }
-        
-        // Update in user posts
-        const userPost = state.userPosts.find(post => post._id === comment.postID);
-        if (userPost) {
-          userPost.comments.push(comment);
-          userPost.commentsCount += 1;
-        }
+        const updatedPost = action.payload;
+        const updatePostInArray = (posts: Post[]) => {
+          const index = posts.findIndex(p => p._id === updatedPost._id);
+          if (index !== -1) {
+            posts[index] = updatedPost;
+          }
+        };
+        updatePostInArray(state.feedPosts);
+        updatePostInArray(state.userPosts);
       });
   },
 });

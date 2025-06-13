@@ -34,7 +34,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "setup-env": "node setup-env.js"
+    "setup-env": "node setup-env.js",
+    "server": "node backend/server.js"
   },
   "eslintConfig": {
     "extends": [

@@ -203,7 +203,7 @@ const PetDetailPage: React.FC = () => {
                     <PostCard
                       key={post._id}
                       post={post}
-                      onView={(post) => navigate(`/posts/${post._id}`)}
+                      onViewPost={(post: Post) => navigate(`/posts/${post._id}`)}
                     />
                   ))}
                 </div>

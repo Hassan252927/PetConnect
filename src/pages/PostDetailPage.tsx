@@ -55,9 +55,7 @@ const PostDetailPage: React.FC = () => {
         addComment({
           postID: post._id,
           userID: currentUser._id,
-          username: currentUser.username,
-          profilePic: currentUser.profilePic,
-          content: newComment.trim(),
+          text: newComment.trim(),
         })
       );
       setNewComment('');

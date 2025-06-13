@@ -7,10 +7,33 @@ router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
       .populate('userID petID comments likes')
-      .sort({ timestamp: -1 });
+      .sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Get posts by user ID
+router.get('/user/:userID', async (req, res) => {
+  try {
+    const { userID } = req.params;
+    const posts = await Post.find({ userID })
+      .populate('userID petID comments likes')
+      .sort({ createdAt: -1 });
+    
+    if (!posts || posts.length === 0) {
+      return res.status(404).json({ 
+        message: `No posts found for user ${userID}` 
+      });
+    }
+    
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ 
+      error: 'Error fetching user posts',
+      details: err.message 
+    });
   }
 });
 

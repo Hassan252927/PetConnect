@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 
 // Default API configuration
-const API_URL = process.env.REACT_APP_API_URL || 'https://api.petconnect.com/v1';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const TIMEOUT = 15000; // 15 seconds
 
 export interface ApiErrorResponse {

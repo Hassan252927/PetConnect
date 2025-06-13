@@ -8,10 +8,10 @@ import { usePostActions } from '../../providers/PostActionsProvider';
 
 interface PostCardProps {
   post: Post | ExtendedPost;
-  onView?: (post: Post | ExtendedPost) => void;
+  onViewPost?: (post: Post | ExtendedPost) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = memo(({ post, onView }) => {
+const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const dispatch = useAppDispatch();
   
   // Use shallow equality selector for currentUser to prevent unnecessary re-renders
@@ -70,14 +70,12 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onView }) => {
     // Update local state immediately
     setLocalComments(prev => [...prev, tempComment]);
     
-    // Dispatch action
+    // Dispatch action with correct parameters
     dispatch(
       addComment({
         postID: post._id,
         userID: currentUser._id,
-        username: currentUser.username,
-        profilePic: currentUser.profilePic,
-        content: comment.trim(),
+        text: comment.trim(),
       })
     );
     
@@ -183,7 +181,7 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onView }) => {
         className="relative pb-[56.25%] overflow-hidden cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={() => onView && onView(post)}
+        onClick={() => onViewPost && onViewPost(post)}
       >
         <img
           src={post.media}

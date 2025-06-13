@@ -33,7 +33,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       dispatch(fetchUserPets(currentUser._id));
-      dispatch(fetchFeedPosts({ userID: currentUser._id, pets }));
+      dispatch(fetchFeedPosts({ pets }));
     }
   }, [dispatch, currentUser, pets.length]);
   
@@ -275,49 +275,68 @@ const Home: React.FC = () => {
               </button>
             </div>
             
-            {/* Posts */}
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <div className="text-gray-500">Loading amazing pet content...</div>
-                </div>
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
-            ) : error ? (
-              <div className="bg-red-100 text-red-700 p-6 rounded-lg shadow border border-red-200 animate-pulse">
-                <div className="font-semibold mb-2 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Something went wrong
-                </div>
-                <p>{error}</p>
+            )}
+            
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                <p className="font-medium">Error loading posts</p>
+                <p className="text-sm">{error}</p>
+                <button
+                  onClick={() => dispatch(fetchFeedPosts({ pets }))}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Try again
+                </button>
               </div>
-            ) : filteredPosts.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                <div className="text-5xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">No posts found</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchQuery || Object.values(activeFilters).some(val => val !== '')
-                    ? "No posts match your search criteria. Try adjusting your filters or search query."
-                    : "Be the first to share a moment with your pet or follow other pet owners to see their posts."}
-                </p>
-                {currentUser && !searchQuery && !Object.values(activeFilters).some(val => val !== '') && (
-                  <button
-                    onClick={() => setShowCreatePost(true)}
-                    className="px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1"
-                  >
-                    Create Your First Post
-                  </button>
-                )}
-              </div>
-            ) : (
+            )}
+            
+            {/* Posts List */}
+            {!isLoading && !error && (
               <div className="space-y-6">
-                {filteredPosts.map((post, index) => (
-                  <div key={post._id} className="animate-fadeIn" style={{animationDelay: `${index * 150}ms`}}>
-                    <PostCard post={post} onView={handleViewPost} />
+                {filteredPosts.length > 0 ? (
+                  filteredPosts.map((post) => (
+                    <PostCard
+                      key={post._id}
+                      post={post}
+                      onViewPost={() => handleViewPost(post)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-white rounded-lg shadow-md">
+                    <p className="text-gray-500">No posts found</p>
+                    {searchQuery || Object.values(activeFilters).some(val => val !== '') ? (
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setActiveFilters({
+                            animalType: '',
+                            breed: '',
+                            age: '',
+                            size: '',
+                            gender: '',
+                            location: ''
+                          });
+                        }}
+                        className="mt-2 text-primary hover:text-primary-dark underline"
+                      >
+                        Clear filters
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowCreatePost(true)}
+                        className="mt-2 text-primary hover:text-primary-dark underline"
+                      >
+                        Create your first post
+                      </button>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
