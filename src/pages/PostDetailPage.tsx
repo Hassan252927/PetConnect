@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { addComment, likePost } from '../store/postSlice';
+import { addComment, likePost, deleteComment } from '../store/postSlice';
 import { savePost, unsavePost } from '../store/userSlice';
+import { getPostById } from '../services/postService';
 
 const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,25 +25,43 @@ const PostDetailPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Find the post in Redux store
-    const foundPost = feedPosts.find(p => p._id === id);
-    
-    if (foundPost) {
-      setPost(foundPost);
+    const fetchPostData = async () => {
+      if (!id) return;
       
-      // Find associated pet if petID exists
-      if (foundPost.petID) {
-        const foundPet = pets.find(p => p._id === foundPost.petID);
-        if (foundPet) {
-          setPet(foundPet);
+      setIsLoading(true);
+      
+      try {
+        // First try to find the post in Redux store
+        let foundPost = feedPosts.find((p: any) => p._id === id);
+        
+        // If not found in Redux store, fetch from API
+        if (!foundPost) {
+          //('Post not found in Redux store, fetching from API...');
+          foundPost = await getPostById(id);
         }
+        
+        if (foundPost) {
+          setPost(foundPost);
+          
+          // Find associated pet if petID exists
+          if (foundPost.petID) {
+            const foundPet = pets.find((p: any) => p._id === foundPost!.petID);
+            if (foundPet) {
+              setPet(foundPet);
+            }
+          }
+        } else {
+          setError('Post not found');
+        }
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        setError('Error loading post');
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
-    } else {
-      setError('Post not found');
-      setIsLoading(false);
-    }
+    };
+
+    fetchPostData();
   }, [id, feedPosts, pets]);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -89,6 +108,20 @@ const PostDetailPage: React.FC = () => {
       }
     } catch (error) {
       setError('Error toggling save');
+    }
+  };
+
+  const handleDeleteComment = async (commentID: string) => {
+    if (!currentUser) return;
+    
+    try {
+      await dispatch(deleteComment({ 
+        postID: post._id, 
+        commentID, 
+        userID: currentUser._id 
+      }));
+    } catch (error) {
+      setError('Error deleting comment');
     }
   };
 
@@ -302,11 +335,13 @@ const PostDetailPage: React.FC = () => {
               {currentUser && (
                 <form onSubmit={handleCommentSubmit} className="mb-6">
                   <div className="flex items-start space-x-3">
-                    <img
-                      src={currentUser.profilePic}
-                      alt={currentUser.username}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
+                    {currentUser.profilePic && (
+                      <img
+                        src={currentUser.profilePic}
+                        alt={currentUser.username}
+                        className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                      />
+                    )}
                     <div className="flex-grow">
                       <textarea
                         id="comment-input"
@@ -337,24 +372,55 @@ const PostDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {post.comments.map((comment: any) => (
-                    <div key={comment._id} className="flex items-start space-x-3">
-                      <img
-                        src={comment.profilePic}
-                        alt={comment.username}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                      <div className="flex-grow bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-medium text-gray-800 dark:text-white">{comment.username}</span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatDate(comment.createdAt)}
-                          </span>
+                  {post.comments.map((comment: any) => {
+                    // Handle both populated and unpopulated comment user data
+                    const commentUser = comment.userID;
+                    const commentUserID = (typeof commentUser === 'object' && commentUser !== null && '_id' in commentUser)
+                      ? commentUser._id 
+                      : comment.userID;
+                    const commentUsername = (typeof commentUser === 'object' && commentUser !== null && 'username' in commentUser)
+                      ? commentUser.username 
+                      : comment.username || 'Unknown User';
+                    const commentProfilePic = (typeof commentUser === 'object' && commentUser !== null && 'profilePic' in commentUser)
+                      ? commentUser.profilePic 
+                      : comment.profilePic || currentUser?.profilePic;
+                    
+                    const isCommentOwner = currentUser && commentUserID === currentUser._id;
+
+                    return (
+                      <div key={comment._id} className="flex items-start space-x-3">
+                        {commentProfilePic && (
+                          <img
+                            src={commentProfilePic}
+                            alt={commentUsername}
+                            className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                          />
+                        )}
+                        <div className="flex-grow bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-medium text-gray-800 dark:text-white">{commentUsername}</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {formatDate(comment.createdAt)}
+                              </span>
+                              {isCommentOwner && (
+                                <button
+                                  onClick={() => handleDeleteComment(comment._id)}
+                                  className="text-red-500 hover:text-red-700 text-xs p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                  title="Delete comment"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-gray-700 dark:text-gray-200 whitespace-pre-line">{comment.content}</p>
                         </div>
-                        <p className="text-gray-700 dark:text-gray-200 whitespace-pre-line">{comment.content}</p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

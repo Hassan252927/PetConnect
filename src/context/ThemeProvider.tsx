@@ -6,7 +6,7 @@ interface ThemeProviderProps {
 }
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { darkMode } = useAppSelector((state) => state.settings);
+  const { darkMode, fontSize } = useAppSelector((state) => state.settings);
   
   // Apply dark mode class to html element
   useEffect(() => {
@@ -16,6 +16,15 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Apply font size class to body element
+  useEffect(() => {
+    // Remove all font size classes first
+    document.body.classList.remove('font-size-small', 'font-size-medium', 'font-size-large');
+    
+    // Add the current font size class
+    document.body.classList.add(`font-size-${fontSize}`);
+  }, [fontSize]);
   
   return <>{children}</>;
 };

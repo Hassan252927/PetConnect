@@ -1,10 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { login as loginService, register as registerService, User as UserModel } from '../services/userService';
+import { login as loginService, register as registerService, User as UserModel, updateUser as updateUserService, UpdateUserRequest } from '../services/userService';
 import { 
   setAuthToken, 
   removeAuthToken,
-  setStoredUser,
-  getStoredUser
+  setStoredUser
 } from '../services/authService';
 
 // Types
@@ -86,30 +85,37 @@ export const checkAuth = createAsyncThunk(
   }
 );
 
+export const updateProfile = createAsyncThunk(
+  'user/updateProfile',
+  async ({ userID, userData }: { userID: string; userData: UpdateUserRequest }, { rejectWithValue }) => {
+    try {
+      const updatedUser = await updateUserService(userID, userData);
+      
+      console.log('Profile update completed on server:', updatedUser.username);
+      
+      // Server now handles comprehensive username synchronization across all collections
+      // No need for client-side Redux synchronization
+      
+      return updatedUser;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update profile');
+    }
+  }
+);
+
 // Slice
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    // Temporary direct login for testing without server
-    directLogin: (state) => {
-      // Mock user data that matches the User interface
-      const mockUser: User = {
-        _id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        profilePic: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-        savedPosts: [],
-        pets: ['pet1', 'pet2']
-      };
-      
-      state.currentUser = mockUser;
+    // Bypass login for development
+    bypassLogin: (state, action: PayloadAction<User>) => {
+      state.currentUser = action.payload;
       state.isLoading = false;
       state.error = null;
-      
-      // Set token in memory
-      setAuthToken('mock-token-for-testing');
-      setStoredUser(mockUser);
+      // Store the token and user for the session
+      setAuthToken('dev-token');
+      setStoredUser(action.payload);
     },
     savePost: (state, action: PayloadAction<string>) => {
       if (state.currentUser) {
@@ -126,6 +132,8 @@ const userSlice = createSlice({
     updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
       if (state.currentUser) {
         state.currentUser = { ...state.currentUser, ...action.payload };
+        // Update stored user to maintain persistence
+        setStoredUser(state.currentUser);
       }
     },
   },
@@ -167,9 +175,25 @@ const userSlice = createSlice({
       // Check Auth
       .addCase(checkAuth.fulfilled, (state, action) => {
         state.currentUser = action.payload;
+      })
+      
+      // Update Profile
+      .addCase(updateProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.currentUser = action.payload;
+        // Update stored user to maintain persistence
+        setStoredUser(action.payload);
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { savePost, unsavePost, updateUserProfile, directLogin } = userSlice.actions;
+export const { bypassLogin, savePost, unsavePost, updateUserProfile } = userSlice.actions;
 export default userSlice.reducer; 

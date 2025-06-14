@@ -11,39 +11,47 @@ const seedPets = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected for seeding');
+    //('✅ MongoDB connected for seeding');
 
     const petsToSeed = [
       {
-        _id: '684aed0c424a48b470f5cf5b',
-        userID: '6520b72a4e9b7a4c8a2b8e0b', // Replace with a valid existing user ID from your database
+        _id: '674c38a66e0a72eb81a6d620', // Valid 24-character ObjectId
+        userID: '684c38a66e0a72eb81a6d61d', // testuser1 from seedUsers.js
         name: 'Buddy',
         animal: 'Dog',
         breed: 'Labrador',
-        image: 'https://example.com/buddy.jpg' // Replace with a real image URL or placeholder
+        image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60'
       },
       {
-        _id: '6520b72a4e9b7a4c8a2b8e0c', // Corrected to a valid 24-character ObjectId
-        userID: '6520b72a4e9b7a4c8a2b8e0b', // Replace with a valid existing user ID from your database
+        _id: '674c38a66e0a72eb81a6d621', // Valid 24-character ObjectId
+        userID: '684c38a66e0a72eb81a6d61d', // testuser1 from seedUsers.js
+        name: 'Max',
+        animal: 'Dog',
+        breed: 'Golden Retriever',
+        image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60'
+      },
+      {
+        _id: '674c38a66e0a72eb81a6d622', // Valid 24-character ObjectId
+        userID: '684c38a66e0a72eb81a6d61f', // testuser2 from seedUsers.js
         name: 'Whiskers',
         animal: 'Cat',
         breed: 'Siamese',
-        image: 'https://example.com/whiskers.jpg' // Replace with a real image URL or placeholder
+        image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60'
       },
     ];
 
     // Remove existing pets with these IDs to prevent duplication errors
     await Pet.deleteMany({ _id: { $in: petsToSeed.map(p => p._id) } });
-    console.log('Existing pets with specified IDs removed.');
+    //('Existing pets with specified IDs removed.');
 
     const insertedPets = await Pet.insertMany(petsToSeed);
-    console.log(`Successfully seeded ${insertedPets.length} pets.`);
+    //(`Successfully seeded ${insertedPets.length} pets.`);
 
   } catch (err) {
     console.error('❌ Error seeding pets:', err);
   } finally {
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB.');
+    //('Disconnected from MongoDB.');
   }
 };
 

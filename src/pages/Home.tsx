@@ -405,7 +405,7 @@ const Home: React.FC = () => {
                 </div>
                 <div className="p-4">
                   <div className="space-y-4">
-                    {pets.slice(0, 3).map((pet) => (
+                    {pets.slice(0, 3).map((pet: any) => (
                       <div key={pet._id} className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer" onClick={() => navigate(`/pets/${pet._id}`)}>
                         <div className="relative">
                           <img

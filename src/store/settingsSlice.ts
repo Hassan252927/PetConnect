@@ -9,6 +9,25 @@ const getInitialDarkMode = (): boolean => {
   return savedMode === 'true';
 };
 
+// Get initial font size from localStorage
+const getInitialFontSize = (): 'small' | 'medium' | 'large' => {
+  if (typeof window === 'undefined') return 'medium';
+  
+  const savedFontSize = localStorage.getItem('fontSize');
+  if (savedFontSize === 'small' || savedFontSize === 'medium' || savedFontSize === 'large') {
+    return savedFontSize;
+  }
+  return 'medium';
+};
+
+// Get initial notifications setting from localStorage
+const getInitialNotifications = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  
+  const savedNotifications = localStorage.getItem('notifications');
+  return savedNotifications !== 'false'; // Default to true if not set
+};
+
 interface SettingsState {
   darkMode: boolean;
   fontSize: 'small' | 'medium' | 'large';
@@ -17,8 +36,8 @@ interface SettingsState {
 
 const initialState: SettingsState = {
   darkMode: getInitialDarkMode(),
-  fontSize: 'medium',
-  notifications: true,
+  fontSize: getInitialFontSize(),
+  notifications: getInitialNotifications(),
 };
 
 const settingsSlice = createSlice({

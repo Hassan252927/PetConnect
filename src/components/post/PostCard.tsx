@@ -1,19 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Post, addComment } from '../../store/postSlice';
+import { Post, addComment, deleteComment, Comment as PostComment } from '../../store/postSlice';
 import { useAppDispatch } from '../../hooks/useRedux';
 import { ExtendedPost } from '../../types/post';
 import { useShallowEqualSelector } from '../../hooks/useShallowEqualSelector';
 import { usePostActions } from '../../providers/PostActionsProvider';
 import { getPetById } from '../../services/petService';
+import { fetchUnreadCount } from '../../store/notificationSlice';
 
 interface PostCardProps {
   post: Post | ExtendedPost;
   onViewPost?: (post: Post | ExtendedPost) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
-  console.log('PostCard received post:', post);
+const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
 
   const dispatch = useAppDispatch();
   
@@ -25,15 +25,31 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const [showComments, setShowComments] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes.length);
-  const [localComments, setLocalComments] = useState(post.comments);
+  const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
+  const [localComments, setLocalComments] = useState<PostComment[]>(post.comments || []);
   const shareOptionsRef = useRef<HTMLDivElement>(null);
   
   const [fetchedPetName, setFetchedPetName] = useState<string | null>(null);
 
+  // Update local state when post changes (from Redux updates)
   useEffect(() => {
-    setLocalComments(post.comments);
-  }, [post.comments]);
+    setLikesCount(post.likes?.length || 0);
+    setLocalComments(post.comments || []);
+  }, [post.likes, post.comments]);
+
+  // Debug: Track username changes
+  useEffect(() => {
+    console.log('PostCard - Post username changed to:', post.username, 'for post:', post._id);
+  }, [post.username, post._id]);
+
+  // Debug: Track when entire post object changes
+  useEffect(() => {
+    console.log('PostCard - Post object changed:', {
+      id: post._id,
+      username: post.username,
+      profilePic: post.profilePic
+    });
+  }, [post]);
 
   useEffect(() => {
     let petIdToFetch: string | null = null;
@@ -62,28 +78,38 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
     }
   }, [post.petID, post.petName]);
 
-  const handleLikeToggle = useCallback(() => {
+  const handleLikeToggle = useCallback(async () => {
     if (!currentUser) return;
     
-    setLikesCount(prev => isLiked(post._id) ? prev - 1 : prev + 1);
+    // Optimistically update likes count for immediate UI feedback
+    const isCurrentlyLiked = isLiked(post._id);
+    setLikesCount(prev => isCurrentlyLiked ? prev - 1 : prev + 1);
     
-    toggleLikePost(post._id, currentUser._id);
-  }, [currentUser, toggleLikePost, post._id, isLiked]);
+    await toggleLikePost(post._id, currentUser._id);
+
+    // Refresh notification count after liking
+    dispatch(fetchUnreadCount(currentUser._id));
+  }, [currentUser, toggleLikePost, post._id, isLiked, dispatch]);
 
   const handleSaveToggle = useCallback(() => {
     if (!currentUser) return;
     toggleSavePost(post._id, currentUser._id);
   }, [currentUser, toggleSavePost, post._id]);
 
-  const handleAddComment = useCallback((e: React.FormEvent) => {
+  const handleAddComment = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!currentUser || !comment.trim()) return;
     
-    const tempComment = {
+    // Optimistically add comment to local state for immediate UI feedback
+    const tempComment: PostComment = {
       _id: `temp_${Date.now()}`,
       postID: post._id,
-      userID: currentUser._id,
+      userID: { 
+        _id: currentUser._id, 
+        username: currentUser.username, 
+        profilePic: currentUser.profilePic 
+      },
       username: currentUser.username,
       profilePic: currentUser.profilePic,
       content: comment.trim(),
@@ -93,16 +119,40 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
     
     setLocalComments(prev => [...prev, tempComment]);
     
-    dispatch(
+    // Dispatch to Redux which will sync with backend
+    await dispatch(
       addComment({
         postID: post._id,
         userID: currentUser._id,
         text: comment.trim(),
       })
     );
+
+    // Refresh notification count after commenting
+    dispatch(fetchUnreadCount(currentUser._id));
     
     setComment('');
   }, [comment, currentUser, dispatch, post._id]);
+
+  const handleDeleteComment = useCallback(async (commentID: string) => {
+    if (!currentUser) return;
+    
+    try {
+      // Optimistically remove comment from local state for immediate UI feedback
+      setLocalComments(prev => prev.filter(c => c._id !== commentID));
+      
+      // Dispatch to Redux which will sync with backend
+      await dispatch(deleteComment({ 
+        postID: post._id, 
+        commentID, 
+        userID: currentUser._id 
+      }));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      // Revert optimistic update on error
+      setLocalComments(post.comments || []);
+    }
+  }, [currentUser, dispatch, post._id, post.comments]);
 
   const handleShare = useCallback((platform: string) => {
     const postUrl = `${window.location.origin}/posts/${post._id}`;
@@ -150,9 +200,10 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
   const postIsSaved = isSaved(post._id);
 
   const displayUsername = post.username || 'Unknown User';
-  const displayProfilePic = post.profilePic || '/default-profile.png';
+  const displayProfilePic = post.profilePic;
   const displayPetName = fetchedPetName || post.petName || 'No Pet Info';
-  const displayTimestamp = post.timestamp ? new Date(post.timestamp).toLocaleString() : 'Invalid Date';
+  const displayTimestamp = post.timestamp || post.createdAt ? 
+    new Date(post.timestamp || post.createdAt!).toLocaleString() : 'Invalid Date';
 
   return (
     <div 
@@ -393,29 +444,61 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
             
             {localComments.length > 0 ? (
               <div className="space-y-3 max-h-60 overflow-y-auto">
-                {localComments.map((comment) => (
-                  <div 
-                    key={comment._id} 
-                    className="flex items-start animate-fadeIn"
-                  >
-                    <img
-                      src={comment.profilePic}
-                      alt={comment.username}
-                      className="h-8 w-8 rounded-full object-cover mr-2"
-                    />
-                    <div className="bg-gray-100 rounded-lg px-3 py-2 flex-grow">
-                      <div className="flex justify-between items-start">
-                        <Link to={`/profile/${comment.userID}`} className="font-medium text-gray-800 hover:text-primary transition-colors duration-200">
-                          {comment.username}
-                        </Link>
-                        <span className="text-xs text-gray-500 ml-2">
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </span>
+                {localComments.map((comment) => {
+                  // Handle both populated and unpopulated comment user data
+                  const commentUser = comment.userID;
+                  const commentUsername = (typeof commentUser === 'object' && commentUser !== null && 'username' in commentUser)
+                    ? commentUser.username 
+                    : comment.username || 'Unknown User';
+                  const commentProfilePic = (typeof commentUser === 'object' && commentUser !== null && 'profilePic' in commentUser)
+                    ? commentUser.profilePic 
+                    : comment.profilePic;
+                  const commentUserID = (typeof commentUser === 'object' && commentUser !== null && '_id' in commentUser)
+                    ? commentUser._id 
+                    : commentUser;
+
+                  // Check if current user owns this comment
+                  const isCommentOwner = currentUser && commentUserID === currentUser._id;
+
+                  return (
+                    <div 
+                      key={comment._id} 
+                      className="flex items-start animate-fadeIn"
+                    >
+                      {commentProfilePic && (
+                        <img
+                          src={commentProfilePic}
+                          alt={commentUsername}
+                          className="h-8 w-8 rounded-full object-cover mr-2 border border-gray-200"
+                        />
+                      )}
+                      <div className="bg-gray-100 rounded-lg px-3 py-2 flex-grow">
+                        <div className="flex justify-between items-start">
+                          <Link to={`/profile/${commentUserID}`} className="font-medium text-gray-800 hover:text-primary transition-colors duration-200">
+                            {commentUsername}
+                          </Link>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs text-gray-500">
+                              {new Date(comment.createdAt).toLocaleString()}
+                            </span>
+                            {isCommentOwner && (
+                              <button
+                                onClick={() => handleDeleteComment(comment._id)}
+                                className="text-red-500 hover:text-red-700 text-xs p-1 rounded hover:bg-red-50 transition-colors"
+                                title="Delete comment"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-gray-700 mt-1">{comment.content}</p>
                       </div>
-                      <p className="text-gray-700 mt-1">{comment.content}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-500 text-sm">No comments yet. Be the first to comment!</p>
@@ -424,11 +507,13 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
             {currentUser && (
               <form onSubmit={handleAddComment} className="mt-3">
                 <div className="flex items-center">
-                  <img
-                    src={currentUser.profilePic}
-                    alt={currentUser.username}
-                    className="h-8 w-8 rounded-full object-cover mr-2"
-                  />
+                  {currentUser.profilePic && (
+                    <img
+                      src={currentUser.profilePic}
+                      alt={currentUser.username}
+                      className="h-8 w-8 rounded-full object-cover mr-2 border border-gray-200"
+                    />
+                  )}
                 <input
                   type="text"
                   value={comment}
@@ -453,6 +538,6 @@ const PostCard: React.FC<PostCardProps> = memo(({ post, onViewPost }) => {
       </div>
     </div>
   );
-});
+};
 
 export default PostCard; 

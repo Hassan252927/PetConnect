@@ -26,24 +26,8 @@ import FloatingChatButton from './components/chat/FloatingChatButton';
 
 // PostActions wrapper component to get user data from Redux
 const PostActionsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const currentUser = useAppSelector((state) => state.user.currentUser);
-  const feedPosts = useAppSelector((state) => state.post.feedPosts);
-  
-  // Get saved posts from user data
-  const savedPosts = currentUser?.savedPosts || [];
-  
-  // Get liked posts by checking which posts the user has liked
-  const likedPosts = currentUser 
-    ? feedPosts
-        .filter(post => post.likes.includes(currentUser._id))
-        .map(post => post._id)
-    : [];
-  
   return (
-    <PostActionsProvider 
-      initialSavedPosts={savedPosts}
-      initialLikedPosts={likedPosts}
-    >
+    <PostActionsProvider>
       {children}
     </PostActionsProvider>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login, directLogin } from '../../store/userSlice';
+import { login, bypassLogin } from '../../store/userSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import './auth.css';
 
@@ -35,19 +35,38 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // TEMPORARY: Use directLogin instead of regular login to bypass server issues
-    dispatch(directLogin());
-    navigate('/');
-    
-    // Comment out the regular login process for now
-    /*
     try {
       await dispatch(login({ email, password })).unwrap();
       navigate('/');
     } catch (error) {
       console.error('Login failed', error);
     }
-    */
+  };
+
+  const handleBypassLogin = async () => {
+    try {
+      // Fetch the actual user data from the database instead of using hardcoded mock data
+      const { getUserById } = await import('../../services/userService');
+      const actualUser = await getUserById('684c38a66e0a72eb81a6d61d');
+      
+      dispatch(bypassLogin(actualUser));
+      navigate('/');
+    } catch (error) {
+      console.error('Error fetching user data for bypass login:', error);
+      // Fallback to mock user data if fetch fails
+      const mockUser = {
+        _id: '684c38a66e0a72eb81a6d61d',
+        username: 'actualname',
+        email: 'actualname@example.com',
+        profilePic: '',
+        savedPosts: [],
+        pets: [],
+        bio: 'Pet lover and animal enthusiast. I enjoy long walks with my dog and taking photos of wildlife.'
+      };
+
+      dispatch(bypassLogin(mockUser));
+      navigate('/');
+    }
   };
 
   // Create paw print elements for animation
@@ -195,22 +214,23 @@ const Login: React.FC = () => {
                 </button>
               </div>
 
-              {/* Temporary Bypass Button for Testing */}
-              <div className="mt-4">
+              {/* Bypass Login Button for Development */}
+              <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    dispatch(directLogin());
-                    navigate('/');
-                  }}
-                  className="group relative w-full flex justify-center py-3 px-4 border-2 border-red-600 text-sm font-bold rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none transition-all duration-300"
+                  onClick={handleBypassLogin}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-300"
                 >
-                  BYPASS LOGIN FOR TESTING
+                  <div className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Bypass Login (Dev)
+                  </div>
                 </button>
-                <p className="text-xs text-center mt-1 text-red-600">
-                  Temporary feature to bypass server issues
-                </p>
               </div>
+
+
             </form>
 
             <div className="mt-6 text-center">

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../../store/userSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
+import { checkUsernameAvailability } from '../../services/userService';
 import './auth.css';
 
 // Define the PawPrint component
@@ -33,9 +34,59 @@ const Register: React.FC = () => {
   const [hasPet, setHasPet] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   
+  // Username validation state
+  const [usernameValidation, setUsernameValidation] = useState<{
+    isChecking: boolean;
+    isValid: boolean;
+    message: string;
+    hasChanged: boolean;
+  }>({
+    isChecking: false,
+    isValid: true,
+    message: '',
+    hasChanged: false
+  });
+  
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.user);
+
+  // Debounced username validation
+  useEffect(() => {
+    const validateUsername = async () => {
+      if (!username || username.length < 3) {
+        setUsernameValidation({
+          isChecking: false,
+          isValid: false,
+          message: username.length > 0 ? 'Username must be at least 3 characters long' : '',
+          hasChanged: username.length > 0
+        });
+        return;
+      }
+
+      setUsernameValidation(prev => ({ ...prev, isChecking: true, hasChanged: true }));
+
+      try {
+        const result = await checkUsernameAvailability(username);
+        setUsernameValidation({
+          isChecking: false,
+          isValid: result.available,
+          message: result.message,
+          hasChanged: true
+        });
+      } catch (error) {
+        setUsernameValidation({
+          isChecking: false,
+          isValid: false,
+          message: 'Error checking username availability',
+          hasChanged: true
+        });
+      }
+    };
+
+    const timeoutId = setTimeout(validateUsername, 500); // Debounce for 500ms
+    return () => clearTimeout(timeoutId);
+  }, [username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +95,36 @@ const Register: React.FC = () => {
       setPasswordError('Passwords do not match');
       return;
     }
+
+    // Check username validation before submitting
+    if (!usernameValidation.isValid) {
+      setPasswordError('Please fix the username error before registering');
+      return;
+    }
+
+    // Don't submit while username is being checked
+    if (usernameValidation.isChecking) {
+      setPasswordError('Please wait while we check username availability');
+      return;
+    }
     
     setPasswordError('');
     
     try {
       await dispatch(register({ username, email, password, hasPet })).unwrap();
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed', error);
+      
+      // Handle specific username error from server
+      if (error.message && error.message.includes('Username is already taken')) {
+        setUsernameValidation({
+          isChecking: false,
+          isValid: false,
+          message: 'Username is already taken. Please choose a different username.',
+          hasChanged: true
+        });
+      }
     }
   };
 
@@ -124,10 +197,40 @@ const Register: React.FC = () => {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                    className={`pl-10 pr-10 block w-full px-4 py-3 border rounded-lg text-gray-700 focus:outline-none focus:ring-2 transition-colors ${
+                      usernameValidation.hasChanged
+                        ? usernameValidation.isValid
+                          ? 'border-green-300 focus:ring-green-500 focus:border-green-500'
+                          : 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300 focus:ring-primary focus:border-primary'
+                    }`}
                     placeholder="Choose a username"
                   />
+                  {/* Validation indicator */}
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    {usernameValidation.isChecking ? (
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : usernameValidation.hasChanged ? (
+                      usernameValidation.isValid ? (
+                        <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      )
+                    ) : null}
+                  </div>
                 </div>
+                {/* Validation message */}
+                {usernameValidation.hasChanged && usernameValidation.message && (
+                  <p className={`text-sm ${
+                    usernameValidation.isValid ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {usernameValidation.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

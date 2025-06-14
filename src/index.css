@@ -66,3 +66,40 @@ code {
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
+
+/* Font Size Classes */
+.font-size-small {
+  font-size: 14px;
+}
+
+.font-size-small h1 { font-size: 1.5rem; }
+.font-size-small h2 { font-size: 1.25rem; }
+.font-size-small h3 { font-size: 1.125rem; }
+.font-size-small h4 { font-size: 1rem; }
+.font-size-small p, .font-size-small span, .font-size-small div { font-size: 0.875rem; }
+.font-size-small .text-sm { font-size: 0.75rem; }
+.font-size-small .text-xs { font-size: 0.625rem; }
+
+.font-size-medium {
+  font-size: 16px;
+}
+
+.font-size-medium h1 { font-size: 1.75rem; }
+.font-size-medium h2 { font-size: 1.5rem; }
+.font-size-medium h3 { font-size: 1.25rem; }
+.font-size-medium h4 { font-size: 1.125rem; }
+.font-size-medium p, .font-size-medium span, .font-size-medium div { font-size: 1rem; }
+.font-size-medium .text-sm { font-size: 0.875rem; }
+.font-size-medium .text-xs { font-size: 0.75rem; }
+
+.font-size-large {
+  font-size: 18px;
+}
+
+.font-size-large h1 { font-size: 2rem; }
+.font-size-large h2 { font-size: 1.75rem; }
+.font-size-large h3 { font-size: 1.5rem; }
+.font-size-large h4 { font-size: 1.25rem; }
+.font-size-large p, .font-size-large span, .font-size-large div { font-size: 1.125rem; }
+.font-size-large .text-sm { font-size: 1rem; }
+.font-size-large .text-xs { font-size: 0.875rem; }

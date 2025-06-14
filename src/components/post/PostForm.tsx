@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPost, fetchFeedPosts } from '../../store/postSlice';
 import { Pet, createPet } from '../../store/petSlice';
 import ImageUpload from '../common/ImageUpload';
-import { simulateImageUpload } from '../../services/uploadService';
+import { uploadImage } from '../../services/uploadService';
 
 interface PostFormProps {
   onSuccess?: () => void;
@@ -62,8 +62,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       // If we have a new media file, upload it
       if (mediaFile) {
         try {
-          // In a real app, use uploadImage instead of simulateImageUpload
-          finalMediaUrl = await simulateImageUpload(mediaFile);
+                  finalMediaUrl = await uploadImage(mediaFile, 'post');
         } catch (error) {
           setUploadError('Failed to upload media. Please try again.');
           setIsUploading(false);
@@ -75,7 +74,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       const postData = {
         userID: currentUser._id,
         username: currentUser.username,
-        profilePic: currentUser.profilePic || 'https://via.placeholder.com/50',
+        profilePic: currentUser.profilePic,
         petID: selectedPet._id,
         petName: selectedPet.name,
         media: finalMediaUrl || '',
@@ -84,11 +83,11 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       };
       
       // Log the payload for debugging
-      console.log('Creating post with data:', postData);
+      //('Creating post with data:', postData);
       
       // Create the post
       const result = await dispatch(createPost(postData)).unwrap();
-      console.log('Post created successfully:', result);
+      //('Post created successfully:', result);
       
       // Fetch updated feed posts after successful creation
       await dispatch(fetchFeedPosts({ userID: currentUser._id, pets: [] }));
@@ -187,13 +186,12 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
     try {
       setIsUploading(true);
       
-      let petImageUrl = 'https://via.placeholder.com/150';
+      let petImageUrl = '';
       
       // If we have a new image file, upload it
       if (newPetImageFile) {
         try {
-          // In a real app, use uploadImage instead of simulateImageUpload
-          petImageUrl = await simulateImageUpload(newPetImageFile);
+          petImageUrl = await uploadImage(newPetImageFile, 'pet');
         } catch (error) {
           setUploadError('Failed to upload pet image. Please try again.');
           setIsUploading(false);
@@ -248,14 +246,14 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
                 id="pet"
                 value={selectedPet?._id || ''}
                 onChange={(e) => {
-                  const pet = pets.find((p) => p._id === e.target.value);
+                  const pet = pets.find((p: Pet) => p._id === e.target.value);
                   setSelectedPet(pet || null);
                 }}
                 className="flex-grow border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                 required={!createPetMode}
               >
                 <option value="">Select a pet</option>
-                {pets.map((pet) => (
+                {pets.map((pet: Pet) => (
                   <option key={pet._id} value={pet._id}>
                     {pet.name} ({pet.animal} - {pet.breed})
                   </option>

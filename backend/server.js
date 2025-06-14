@@ -12,6 +12,9 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/petconnect
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // MongoDB connection
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
@@ -31,15 +34,17 @@ app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/comments', require('./routes/commentRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Default route
 app.get('/', (req, res) => {
   res.send('PetConnect API is running...');
 });
 
+//('🚀 Server starting at:', new Date().toISOString());
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log('Environment:', process.env.NODE_ENV || 'development');
-  console.log('MongoDB URI:', MONGO_URI);
+  //(`Server running on port ${PORT}`);
 });

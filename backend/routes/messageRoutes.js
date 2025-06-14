@@ -46,15 +46,15 @@ router.post('/send', /* auth, */ async (req, res) => {
 router.get('/:userId', /* auth, */ async (req, res) => {
   try {
     const userId = req.params.userId;
-    console.log(`Received request for userId: ${userId}`); // Log received userId
+    //(`Received request for userId: ${userId}`); // Log received userId
 
     // First, verify the user exists
     const user = await User.findById(userId);
     if (!user) {
-      console.log(`User with ID ${userId} not found in database.`); // Log if user is not found
+      //(`User with ID ${userId} not found in database.`); // Log if user is not found
       return res.status(404).json({ message: 'User not found' });
     }
-    console.log(`Found user: ${user.username} with ID: ${user._id}`); // Log if user is found
+    //(`Found user: ${user.username} with ID: ${user._id}`); // Log if user is found
 
     // Fetch messages with proper population
     const messages = await Message.find({
@@ -139,7 +139,7 @@ router.get('/:userId', /* auth, */ async (req, res) => {
     // Convert map values to an array of chats
     const chats = Array.from(chatsMap.values());
 
-    console.log("Backend sending chats:", JSON.stringify(chats, null, 2));
+    //("Backend sending chats:", JSON.stringify(chats, null, 2));
 
     res.json(chats);
   } catch (error) {

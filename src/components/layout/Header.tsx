@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../hooks/useRedux';
 import { logout } from '../../store/userSlice';
-import { fetchNotifications } from '../../store/notificationSlice';
+import { fetchNotifications, fetchUnreadCount } from '../../store/notificationSlice';
 import NotificationDropdown from '../notifications/NotificationDropdown';
 
 const Header: React.FC = () => {
@@ -18,9 +18,6 @@ const Header: React.FC = () => {
   const { chats } = useAppSelector((state) => state.chat);
   const { feedPosts } = useAppSelector((state) => state.post);
   const { unreadCount: notificationCount } = useAppSelector((state) => state.notification);
-  
-  // Calculate unread count from chats
-  const unreadChatCount = chats?.reduce((total, chat) => total + (chat.unreadCount || 0), 0) || 0;
 
   // Navbar links
   const navLinks = [
@@ -45,15 +42,29 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  // Fetch notifications when user is logged in and posts are loaded
+  // Fetch notifications when user is logged in
   useEffect(() => {
-    if (currentUser && feedPosts.length > 0) {
-      dispatch(fetchNotifications({ 
-        userID: currentUser._id, 
-        posts: feedPosts 
-      }));
+    if (currentUser) {
+      dispatch(fetchNotifications(currentUser._id));
+      dispatch(fetchUnreadCount(currentUser._id));
     }
-  }, [currentUser, feedPosts, dispatch]);
+  }, [currentUser, dispatch]);
+
+  // Periodically refresh unread count
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const interval = setInterval(() => {
+      dispatch(fetchUnreadCount(currentUser._id));
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [currentUser, dispatch]);
+
+  // Debug notification count
+  useEffect(() => {
+    console.log('Header - Notification count updated:', notificationCount);
+  }, [notificationCount]);
 
   const handleLogout = async () => {
     try {
@@ -115,8 +126,8 @@ const Header: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                     {notificationCount > 0 && (
-                      <span className="absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
-                        {notificationCount}
+                      <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] text-xs font-bold text-white bg-red-500 rounded-full border-2 border-white animate-pulse">
+                        {notificationCount > 99 ? '99+' : notificationCount}
                       </span>
                     )}
                   </button>
@@ -138,7 +149,7 @@ const Header: React.FC = () => {
                   >
                     <div className="relative">
                       <img
-                        src={currentUser.profilePic}
+                        src={currentUser.profilePic || undefined}
                         alt={currentUser.username}
                         className="h-9 w-9 rounded-full object-cover border-2 border-transparent group-hover:border-primary transition-all duration-200"
                       />
@@ -263,7 +274,7 @@ const Header: React.FC = () => {
               <div className="flex-shrink-0">
                 <img
                   className="h-10 w-10 rounded-full object-cover"
-                  src={currentUser?.profilePic}
+                  src={currentUser?.profilePic || undefined}
                   alt={currentUser?.username}
                 />
               </div>
@@ -280,8 +291,8 @@ const Header: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 {notificationCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
-                    {notificationCount}
+                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] text-xs font-bold text-white bg-red-500 rounded-full border-2 border-white animate-pulse">
+                    {notificationCount > 99 ? '99+' : notificationCount}
                   </span>
                 )}
               </button>

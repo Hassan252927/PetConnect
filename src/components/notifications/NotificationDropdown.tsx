@@ -42,6 +42,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
   const dispatch = useAppDispatch();
   
   const { notifications, isLoading } = useAppSelector((state) => state.notification);
+  const { currentUser } = useAppSelector((state) => state.user);
   
   // Close on escape key
   useEffect(() => {
@@ -77,7 +78,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
   
   // Mark all as read
   const handleMarkAllAsRead = () => {
-    dispatch(markAllAsRead());
+    if (currentUser) {
+      dispatch(markAllAsRead(currentUser._id));
+    }
   };
   
   if (!isOpen) return null;
@@ -108,7 +111,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
             <p className="text-gray-500 dark:text-gray-400">No notifications yet</p>
           </div>
         ) : (
-          notifications.map((notification) => (
+          notifications.map((notification: Notification) => (
             <div
               key={notification._id}
               onClick={() => handleNotificationClick(notification)}
@@ -118,7 +121,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
             >
               <div className="flex items-start">
                 <img
-                  src={notification.senderProfilePic}
+                  src={notification.senderProfilePic || '/default-profile.png'}
                   alt={notification.senderUsername}
                   className="w-10 h-10 rounded-full object-cover mr-3"
                 />
@@ -136,6 +139,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onC
                     {formatTimeAgo(notification.createdAt)}
                   </p>
                 </div>
+                
                 {notification.postImage && (
                   <div className="ml-2 flex-shrink-0">
                     <img

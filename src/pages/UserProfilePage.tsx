@@ -58,11 +58,13 @@ const UserProfilePage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center space-x-6">
-            <img
-              src={user.profilePicture || 'https://via.placeholder.com/150'}
-              alt={user.username}
-              className="w-24 h-24 rounded-full object-cover"
-            />
+            {user.profilePicture && (
+              <img
+                src={user.profilePicture}
+                alt={user.username}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            )}
             <div>
               <h1 className="text-2xl font-bold">{user.username}</h1>
               <p className="text-gray-600">{user.email}</p>
@@ -84,13 +86,15 @@ const UserProfilePage: React.FC = () => {
                     className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => navigate(`/pets/${pet._id}`)}
                   >
-                    <div className="relative h-48">
-                      <img
-                        src={pet.image || 'https://via.placeholder.com/400x300'}
-                        alt={pet.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    {pet.image && (
+                      <div className="relative h-48">
+                        <img
+                          src={pet.image}
+                          alt={pet.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <div className="p-4">
                       <h3 className="text-lg font-semibold">{pet.name}</h3>
                       <p className="text-gray-600">{pet.breed}</p>

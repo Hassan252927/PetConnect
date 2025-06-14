@@ -25,7 +25,7 @@ export interface PetState {
 // Generate mock pet data
 const generateMockPets = (ownerID: string): Pet[] => [
   {
-    _id: 'pet1',
+    _id: '674c38a66e0a72eb81a6d620', // Use actual ObjectId from seedPets.js
     name: 'Buddy',
     animal: 'Dog',
     breed: 'Golden Retriever',
@@ -39,15 +39,15 @@ const generateMockPets = (ownerID: string): Pet[] => [
     updatedAt: new Date(Date.now() - 864000000).toISOString(), // 10 days ago
   },
   {
-    _id: 'pet2',
-    name: 'Whiskers',
-    animal: 'Cat',
-    breed: 'Persian',
+    _id: '674c38a66e0a72eb81a6d621', // Use actual ObjectId from seedPets.js
+    name: 'Max',
+    animal: 'Dog',
+    breed: 'Golden Retriever',
     age: 5,
     gender: 'Female',
-    weight: 10,
-    image: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    description: 'Lazy and affectionate Persian cat who loves to nap in sunny spots.',
+    weight: 55,
+    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
+    description: 'Energetic and playful golden retriever.',
     ownerID,
     createdAt: new Date(Date.now() - 15552000000).toISOString(), // 180 days ago
     updatedAt: new Date(Date.now() - 1728000000).toISOString(), // 20 days ago

@@ -1,25 +1,6 @@
 import apiClient from './apiClient';
 import { Post } from '../store/postSlice';
 
-// Interface for creating a new post
-export interface CreatePostRequest {
-  petID: string;
-  userID: string;
-  petName: string;
-  petImage: string;
-  username: string;
-  profilePic: string;
-  media: string;
-  caption: string;
-  animal: string;
-  breed: string;
-}
-
-// Interface for updating a post
-export interface UpdatePostRequest extends Partial<CreatePostRequest> {
-  postID: string;
-}
-
 /**
  * Get feed posts (all posts or for a specific user)
  * @param userID - Optional user ID to get posts for a specific user
@@ -44,18 +25,19 @@ export const getPostById = (postID: string): Promise<Post> => {
  * @param postData - The data for the new post
  * @returns A promise that resolves to the created post
  */
-export const createPost = (postData: CreatePostRequest): Promise<Post> => {
-  console.log('postService.createPost - Request payload:', JSON.stringify(postData, null, 2));
+export const createPost = (postData: any): Promise<Post> => {
+  //('postService.createPost - Request payload:', JSON.stringify(postData, null, 2));
   return apiClient.post('/posts', postData);
 };
 
 /**
  * Update a post
- * @param postData - The data to update the post with
+ * @param postID - The ID of the post to update
+ * @param postData - The updated data for the post
  * @returns A promise that resolves to the updated post
  */
-export const updatePost = (postData: UpdatePostRequest): Promise<Post> => {
-  return apiClient.put(`/posts/${postData.postID}`, postData);
+export const updatePost = (postID: string, postData: Partial<Post>): Promise<Post> => {
+  return apiClient.put(`/posts/${postID}`, postData);
 };
 
 /**
@@ -68,8 +50,8 @@ export const deletePost = (postID: string): Promise<void> => {
 };
 
 /**
- * Like or unlike a post
- * @param postID - The ID of the post
+ * Toggle like/unlike a post (Instagram-style)
+ * @param postID - The ID of the post to like/unlike
  * @param userID - The ID of the user liking/unliking the post
  * @returns A promise that resolves to the updated post
  */
@@ -79,51 +61,37 @@ export const toggleLikePost = (postID: string, userID: string): Promise<Post> =>
 
 /**
  * Add a comment to a post
- * @param postID - The ID of the post
+ * @param postID - The ID of the post to comment on
  * @param userID - The ID of the user adding the comment
- * @param text - The comment text
+ * @param content - The content of the comment
  * @returns A promise that resolves to the updated post
  */
-export const addComment = (
-  postID: string,
-  userID: string,
-  text: string
-): Promise<Post> => {
-  return apiClient.post(`/posts/${postID}/comments`, { userID, text });
+export const addComment = (postID: string, userID: string, content: string): Promise<Post> => {
+  return apiClient.post(`/posts/${postID}/comment`, { userID, content });
 };
 
 /**
- * Delete a comment from a post
- * @param postID - The ID of the post
+ * Delete a comment
+ * @param postID - The ID of the post the comment belongs to
  * @param commentID - The ID of the comment to delete
+ * @param userID - The ID of the user deleting the comment
  * @returns A promise that resolves to the updated post
  */
-export const deleteComment = (postID: string, commentID: string): Promise<Post> => {
-  return apiClient.delete(`/posts/${postID}/comments/${commentID}`);
+export const deleteComment = (postID: string, commentID: string, userID: string): Promise<Post> => {
+  return apiClient.delete(`/posts/${postID}/comment/${commentID}`, { data: { userID } });
 };
 
 /**
- * Search for posts based on criteria
+ * Search posts by tags or content
  * @param query - The search query
- * @param filters - Optional filters to apply
- * @returns A promise that resolves to an array of posts
+ * @returns A promise that resolves to an array of matching posts
  */
-export const searchPosts = (
-  query: string,
-  filters?: {
-    animalType?: string;
-    breed?: string;
-  }
-): Promise<Post[]> => {
-  return apiClient.get('/posts/search', {
-    params: {
-      query,
-      ...filters,
-    },
-  });
+export const searchPosts = (query: string): Promise<Post[]> => {
+  return apiClient.get(`/posts/search?q=${encodeURIComponent(query)}`);
 };
 
-export default {
+// Default export for convenience
+const postService = {
   getFeedPosts,
   getPostById,
   createPost,
@@ -133,4 +101,6 @@ export default {
   addComment,
   deleteComment,
   searchPosts,
-}; 
+};
+
+export default postService; 

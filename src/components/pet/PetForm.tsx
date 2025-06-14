@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { createPet, Pet } from '../../store/petSlice';
 import ImageUpload from '../common/ImageUpload';
-import { simulateImageUpload } from '../../services/uploadService';
+import { uploadImage } from '../../services/uploadService';
 
 interface PetFormProps {
   initialData?: Partial<Pet>;
@@ -116,8 +116,7 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
       // If we have a new image file, upload it
       if (imageFile) {
         try {
-          // In a real app, use uploadImage instead of simulateImageUpload
-          finalImageUrl = await simulateImageUpload(imageFile);
+                  finalImageUrl = await uploadImage(imageFile, 'pet');
         } catch (error) {
           setUploadError('Failed to upload image. Please try again.');
           setIsUploading(false);
@@ -130,7 +129,7 @@ const PetForm: React.FC<PetFormProps> = ({ initialData, onSuccess, onCancel }) =
         name,
         animal,
         breed,
-        image: finalImageUrl || 'https://via.placeholder.com/150',
+        image: finalImageUrl,
         description: '',
       };
       

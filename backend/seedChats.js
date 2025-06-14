@@ -14,12 +14,12 @@ const seedChats = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected for seeding');
+    //('✅ MongoDB connected for seeding');
 
     // Clear existing chats and messages (optional, for a clean seed)
     await Chat.deleteMany({});
     await Message.deleteMany({});
-    console.log('Cleared existing chats and messages.');
+    //('Cleared existing chats and messages.');
 
     // IMPORTANT: Replace these with actual user IDs from your database
     // If you don't have users, you might need to create them first or seed them.
@@ -31,12 +31,12 @@ const seedChats = async () => {
     // const user2 = await User.findById(user2Id);
     // if (!user1 || !user2) {
     //   console.error('One or both placeholder users not found. Please ensure they exist.');
-    //   console.log('Creating dummy users for seeding purposes...');
+    //   //('Creating dummy users for seeding purposes...');
     //   const dummyUser1 = await User.create({ username: 'ChatUser1', email: 'chat1@example.com', password: 'password123' });
     //   const dummyUser2 = await User.create({ username: 'ChatUser2', email: 'chat2@example.com', password: 'password123' });
     //   user1Id = dummyUser1._id;
     //   user2Id = dummyUser2._id;
-    //   console.log('Dummy users created.');
+    //   //('Dummy users created.');
     // }
 
     // Create a new chat
@@ -47,7 +47,7 @@ const seedChats = async () => {
       lastMessage: null,
     });
     chat = await chat.save();
-    console.log(`Created chat with ID: ${chat._id}`);
+    //(`Created chat with ID: ${chat._id}`);
 
     // Create messages for the chat
     const message1 = new Message({
@@ -81,14 +81,14 @@ const seedChats = async () => {
     chat.lastMessage = message3._id; // Store reference to the last message
     chat.unreadCount = 1; // Assuming message3 is unread by user2
     await chat.save();
-    console.log('Messages added and chat updated.');
+    //('Messages added and chat updated.');
 
-    console.log('Database seeding complete!');
+    //('Database seeding complete!');
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('MongoDB disconnected.');
+    //('MongoDB disconnected.');
   }
 };
 

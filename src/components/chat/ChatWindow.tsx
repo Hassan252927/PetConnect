@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/useRedux';
 import { fetchChatMessages, sendMessage, markMessagesAsRead } from '../../store/chatSlice';
 import { Message } from '../../services/chatService';
-import { format } from 'date-fns';
+
+// Try using require as a fallback for date-fns
+const { format } = require('date-fns');
 // Removed react-icons imports to resolve errors
 // import { IoSendSharp } from "react-icons/io5";
 // import { MdOutlinePhotoCamera } from "react-icons/md";

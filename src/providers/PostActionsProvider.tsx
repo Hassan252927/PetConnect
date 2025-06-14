@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useAppDispatch } from '../hooks/useRedux';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { savePost, unsavePost } from '../store/userSlice';
 import { likePost } from '../store/postSlice';
 
@@ -28,20 +28,66 @@ export const usePostActions = () => useContext(PostActionsContext);
 
 interface PostActionsProviderProps {
   children: React.ReactNode;
-  initialSavedPosts?: string[];
-  initialLikedPosts?: string[];
 }
 
 export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({ 
-  children, 
-  initialSavedPosts = [], 
-  initialLikedPosts = [] 
+  children
 }) => {
   const dispatch = useAppDispatch();
+  const { currentUser } = useAppSelector((state) => state.user);
+  const { feedPosts } = useAppSelector((state) => state.post);
   
   // Use Sets for O(1) lookups
-  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set(initialSavedPosts));
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set(initialLikedPosts));
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Initialize liked and saved posts based on current data (only once)
+  useEffect(() => {
+    if (currentUser && feedPosts.length > 0 && !isInitialized) {
+      // Initialize liked posts based on current user's likes in the posts
+      const userLikedPosts = new Set<string>();
+      feedPosts.forEach(post => {
+        if (post.likes && post.likes.includes(currentUser._id)) {
+          userLikedPosts.add(post._id);
+        }
+      });
+      setLikedPosts(userLikedPosts);
+      
+      // Initialize saved posts from user's savedPosts array
+      if (currentUser.savedPosts) {
+        setSavedPosts(new Set(currentUser.savedPosts));
+      }
+      
+      setIsInitialized(true);
+    }
+  }, [currentUser, feedPosts, isInitialized]);
+  
+  // Sync with Redux state changes (but don't override optimistic updates)
+  useEffect(() => {
+    if (currentUser && feedPosts.length > 0 && isInitialized) {
+      // Only update if there are actual changes from the backend
+      const backendLikedPosts = new Set<string>();
+      feedPosts.forEach(post => {
+        if (post.likes && post.likes.includes(currentUser._id)) {
+          backendLikedPosts.add(post._id);
+        }
+      });
+      
+      // Only update if the backend state is different from our current state
+      // This prevents overriding optimistic updates
+      setLikedPosts(prev => {
+        const prevArray = Array.from(prev).sort();
+        const backendArray = Array.from(backendLikedPosts).sort();
+        
+        // Only update if arrays are different
+        if (JSON.stringify(prevArray) !== JSON.stringify(backendArray)) {
+          return backendLikedPosts;
+        }
+        return prev;
+      });
+    }
+  }, [feedPosts, currentUser, isInitialized]);
   
   // Toggle save post status
   const toggleSavePost = useCallback((postId: string, userId: string) => {
@@ -60,8 +106,9 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
     });
   }, [dispatch]);
   
-  // Toggle like post status
+  // Toggle like post status with backend sync
   const toggleLikePost = useCallback((postId: string, userId: string) => {
+    // Optimistically update the UI first
     setLikedPosts(prev => {
       const newSet = new Set(prev);
       
@@ -71,11 +118,11 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
         newSet.add(postId);
       }
       
-      // Dispatch the like action to Redux
-      dispatch(likePost({ postID: postId, userID: userId }));
-      
       return newSet;
     });
+    
+    // Then sync with backend
+    dispatch(likePost({ postID: postId, userID: userId }));
   }, [dispatch]);
   
   // Check if a post is saved

@@ -6,6 +6,7 @@ export interface User {
   username: string;
   email: string;
   profilePic: string;
+  bio?: string;
   savedPosts: string[];
   pets: string[];
 }
@@ -75,11 +76,22 @@ export const getUserById = (userID: string): Promise<User> => {
 };
 
 /**
- * Update the current user's profile
+ * Update a user's profile by ID
+ * @param userID - The ID of the user to update
  * @param userData - The data to update the user with
  * @returns A promise that resolves to the updated user
  */
-export const updateUser = (userData: UpdateUserRequest): Promise<User> => {
+export const updateUser = (userID: string, userData: UpdateUserRequest): Promise<User> => {
+  return apiClient.put(`/users/${userID}`, userData);
+};
+
+/**
+ * Update the current user's profile (legacy method)
+ * @param userData - The data to update the user with
+ * @returns A promise that resolves to the updated user
+ */
+export const updateCurrentUser = (userData: UpdateUserRequest): Promise<User> => {
+  // This method is deprecated since we don't have /users/me endpoint
   return apiClient.put('/users/me', userData);
 };
 
@@ -119,6 +131,21 @@ export const searchUsers = (query: string): Promise<User[]> => {
   });
 };
 
+/**
+ * Check if a username is available
+ * @param username - The username to check
+ * @param excludeUserId - Optional user ID to exclude from the check (for profile updates)
+ * @returns A promise that resolves to availability status
+ */
+export const checkUsernameAvailability = (
+  username: string, 
+  excludeUserId?: string
+): Promise<{ available: boolean; message: string }> => {
+  const url = `/users/check/username/${encodeURIComponent(username)}`;
+  const params = excludeUserId ? { excludeUserId } : {};
+  return apiClient.get(url, { params });
+};
+
 export default {
   register,
   login,
@@ -128,4 +155,5 @@ export default {
   changePassword,
   toggleFollowUser,
   searchUsers,
+  checkUsernameAvailability,
 }; 

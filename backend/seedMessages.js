@@ -8,7 +8,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/petconnect
 async function seedMessages() {
   try {
     await mongoose.connect(MONGO_URI);
-    console.log('Connected to MongoDB');
+    //('Connected to MongoDB');
 
     // Get the test users
     const user1 = await User.findOne({ username: 'testuser1' });
@@ -55,7 +55,7 @@ async function seedMessages() {
     ];
 
     await Message.insertMany(messages);
-    console.log('Test messages seeded successfully');
+    //('Test messages seeded successfully');
 
     process.exit(0);
   } catch (error) {

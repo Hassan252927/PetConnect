@@ -13,11 +13,11 @@ const seedUsers = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected for user seeding');
+    //('✅ MongoDB connected for user seeding');
 
     // Clear existing users (optional, for a clean seed)
     await User.deleteMany({});
-    console.log('Cleared existing users.');
+    //('Cleared existing users.');
 
     // Create test users
     const passwordHash1 = await bcrypt.hash('password123', 10);
@@ -31,7 +31,7 @@ const seedUsers = async () => {
       profilePic: 'https://res.cloudinary.com/dvf40qifz/image/upload/v1709737070/default_profile_pic.png',
     });
     await user1.save();
-    console.log(`Created user: ${user1.username} with ID: ${user1._id}`);
+    //(`Created user: ${user1.username} with ID: ${user1._id}`);
 
     const user2 = new User({
       _id: '684c38a66e0a72eb81a6d61f',
@@ -41,14 +41,14 @@ const seedUsers = async () => {
       profilePic: 'https://res.cloudinary.com/dvf40qifz/image/upload/v1709737070/default_profile_pic.png',
     });
     await user2.save();
-    console.log(`Created user: ${user2.username} with ID: ${user2._id}`);
+    //(`Created user: ${user2.username} with ID: ${user2._id}`);
 
-    console.log('User seeding complete!');
+    //('User seeding complete!');
   } catch (error) {
     console.error('Error seeding users:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('MongoDB disconnected.');
+    //('MongoDB disconnected.');
   }
 };
 

@@ -78,11 +78,13 @@ const PetDetailPage: React.FC = () => {
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-8">
         {/* Cover/Profile Image */}
         <div className="relative h-80">
-          <img
-            src={pet.image || 'https://via.placeholder.com/800x400?text=No+Image'}
-            alt={pet.name}
-            className="w-full h-full object-cover"
-          />
+          {pet.image && (
+            <img
+              src={pet.image}
+              alt={pet.name}
+              className="w-full h-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           
           {/* Back Button */}
