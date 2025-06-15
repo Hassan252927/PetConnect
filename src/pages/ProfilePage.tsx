@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../hooks/useRedux';
 import { getUserById, User, UpdateUserRequest, checkUsernameAvailability } from '../services/userService';
 import { updateProfile } from '../store/userSlice';
-import { fetchUserPosts, deletePost } from '../store/postSlice';
+import { fetchUserPosts, fetchSavedPosts, deletePost } from '../store/postSlice';
 import Layout from '../components/layout/Layout';
 import ProfilePictureUpload from '../components/common/ProfilePictureUpload';
 import { uploadImage } from '../services/uploadService';
@@ -13,11 +13,12 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.user);
-  const { userPosts, isLoading: postsLoading } = useAppSelector((state) => state.post);
+  const { userPosts, savedPosts, isLoading: postsLoading } = useAppSelector((state) => state.post);
   const [user, setUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts' or 'saved'
   const [formData, setFormData] = useState<UpdateUserRequest>({
     username: '',
     email: '',
@@ -66,6 +67,11 @@ const ProfilePage: React.FC = () => {
 
         // Fetch user posts
         dispatch(fetchUserPosts(id));
+        
+        // Fetch saved posts if it's the current user's profile
+        if (currentUser && id === currentUser._id) {
+          dispatch(fetchSavedPosts(id));
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
         setError('Failed to load user profile. Please try again.');
@@ -75,7 +81,7 @@ const ProfilePage: React.FC = () => {
     };
 
     fetchUser();
-  }, [id, dispatch]);
+  }, [id, dispatch, currentUser]);
 
   // Sync local user state with Redux currentUser when it changes
   useEffect(() => {
@@ -239,6 +245,11 @@ const ProfilePage: React.FC = () => {
       console.error('Error deleting post:', error);
       setError(error.message || 'Failed to delete post');
     }
+  };
+
+  // Add this function to handle tab switching
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
   };
 
   if (isLoading) {
@@ -427,116 +438,234 @@ const ProfilePage: React.FC = () => {
             </form>
           )}
 
-          {/* My Posts Section */}
-          <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4">
-              {isOwnProfile ? 'My Posts' : `${user.username}'s Posts`}
-            </h2>
-            {postsLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <span className="ml-2 text-gray-500">Loading posts...</span>
-              </div>
-            ) : userPosts.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-5xl mb-4">📸</div>
-                <p className="text-gray-500 mb-4">
-                  {isOwnProfile ? "You haven't posted anything yet." : "No posts yet."}
-                </p>
-                {isOwnProfile && (
+          {/* Tabs */}
+          {isOwnProfile && (
+            <div className="mt-8 border-b border-gray-200">
+              <nav className="flex -mb-px">
+                <button
+                  onClick={() => handleTabChange('posts')}
+                  className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                    activeTab === 'posts'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Posts
+                </button>
+                <button
+                  onClick={() => handleTabChange('saved')}
+                  className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                    activeTab === 'saved'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Saved
+                </button>
+              </nav>
+            </div>
+          )}
+
+          {/* Posts Tab */}
+          {activeTab === 'posts' && (
+            <div className="mt-6">
+              <h2 className="text-xl font-bold mb-4">
+                {isOwnProfile ? 'My Posts' : `${user?.username}'s Posts`}
+              </h2>
+              {postsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2 text-gray-500">Loading posts...</span>
+                </div>
+              ) : userPosts.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-5xl mb-4">📸</div>
+                  <p className="text-gray-500 mb-4">
+                    {isOwnProfile ? "You haven't posted anything yet." : "No posts yet."}
+                  </p>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => navigate('/')}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      Create Your First Post
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {userPosts.map((post: any) => (
+                    <div
+                      key={post._id}
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {/* Post Image */}
+                      <div className="relative aspect-square">
+                        {post.media && (
+                          <img
+                            src={post.media}
+                            alt={post.caption}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => navigate(`/posts/${post._id}`)}
+                          />
+                        )}
+                        {/* Post Actions Overlay */}
+                        {isOwnProfile && (
+                          <div className="absolute top-2 right-2 flex space-x-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/posts/${post._id}/edit`);
+                              }}
+                              className="p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-colors"
+                              title="Edit post"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePost(post._id);
+                              }}
+                              className="p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-colors"
+                              title="Delete post"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                        {/* Post Stats Overlay */}
+                        <div className="absolute bottom-2 left-2 flex items-center space-x-3 text-white text-sm">
+                          <div className="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            </svg>
+                            <span>{post.likes?.length || 0}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <span>{post.comments?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Post Info */}
+                      <div className="p-4">
+                        {post.caption && (
+                          <p 
+                            className="text-gray-800 dark:text-white text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => navigate(`/posts/${post._id}`)}
+                          >
+                            {post.caption}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{new Date(post.createdAt || post.timestamp).toLocaleDateString()}</span>
+                          {post.petName && (
+                            <span className="text-primary">with {post.petName}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Saved Posts Tab */}
+          {activeTab === 'saved' && isOwnProfile && (
+            <div className="mt-6">
+              <h2 className="text-xl font-bold mb-4">Saved Posts</h2>
+              {postsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2 text-gray-500">Loading saved posts...</span>
+                </div>
+              ) : savedPosts.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-5xl mb-4">🔖</div>
+                  <p className="text-gray-500 mb-4">
+                    You haven't saved any posts yet.
+                  </p>
                   <button
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/explore')}
                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                   >
-                    Create Your First Post
+                    Explore Posts
                   </button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {userPosts.map((post: any) => (
-                  <div
-                    key={post._id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    {/* Post Image */}
-                    <div className="relative aspect-square">
-                      {post.media && (
-                        <img
-                          src={post.media}
-                          alt={post.caption}
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => navigate(`/posts/${post._id}`)}
-                        />
-                      )}
-                      {/* Post Actions Overlay */}
-                      {isOwnProfile && (
-                        <div className="absolute top-2 right-2 flex space-x-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/posts/${post._id}/edit`);
-                            }}
-                            className="p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-colors"
-                            title="Edit post"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeletePost(post._id);
-                            }}
-                            className="p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-colors"
-                            title="Delete post"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                      {/* Post Stats Overlay */}
-                      <div className="absolute bottom-2 left-2 flex items-center space-x-3 text-white text-sm">
-                        <div className="flex items-center space-x-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                          </svg>
-                          <span>{post.likes?.length || 0}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                          <span>{post.comments?.length || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Post Info */}
-                    <div className="p-4">
-                      {post.caption && (
-                        <p 
-                          className="text-gray-800 dark:text-white text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors"
-                          onClick={() => navigate(`/posts/${post._id}`)}
-                        >
-                          {post.caption}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{new Date(post.createdAt || post.timestamp).toLocaleDateString()}</span>
-                        {post.petName && (
-                          <span className="text-primary">with {post.petName}</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savedPosts.map((post: any) => (
+                    <div
+                      key={post._id}
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {/* Post Image */}
+                      <div className="relative aspect-square">
+                        {post.media && (
+                          <img
+                            src={post.media}
+                            alt={post.caption}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => navigate(`/posts/${post._id}`)}
+                          />
                         )}
+                        {/* Post Stats Overlay */}
+                        <div className="absolute bottom-2 left-2 flex items-center space-x-3 text-white text-sm">
+                          <div className="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                            </svg>
+                            <span>{post.likes?.length || 0}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <span>{post.comments?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Post Info */}
+                      <div className="p-4">
+                        <div className="flex items-center mb-2">
+                          <img
+                            src={post.profilePic || 'https://via.placeholder.com/40'}
+                            alt={post.username}
+                            className="w-6 h-6 rounded-full mr-2"
+                          />
+                          <span className="text-sm font-medium">{post.username}</span>
+                        </div>
+                        {post.caption && (
+                          <p 
+                            className="text-gray-800 dark:text-white text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => navigate(`/posts/${post._id}`)}
+                          >
+                            {post.caption}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{new Date(post.createdAt || post.timestamp).toLocaleDateString()}</span>
+                          {post.petName && (
+                            <span className="text-primary">with {post.petName}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Layout>

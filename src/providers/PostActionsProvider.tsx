@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { savePost, unsavePost } from '../store/userSlice';
 import { likePost } from '../store/postSlice';
+import { savePost as savePostService, unsavePost as unsavePostService } from '../services/userService';
 
 // Define the context type
 interface PostActionsContextType {
@@ -44,7 +45,9 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
   
   // Initialize liked and saved posts based on current data (only once)
   useEffect(() => {
-    if (currentUser && feedPosts.length > 0 && !isInitialized) {
+    if (currentUser && !isInitialized) {
+      console.log('PostActionsProvider - Initializing post actions');
+      
       // Initialize liked posts based on current user's likes in the posts
       const userLikedPosts = new Set<string>();
       feedPosts.forEach(post => {
@@ -56,6 +59,7 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
       
       // Initialize saved posts from user's savedPosts array
       if (currentUser.savedPosts) {
+        console.log('PostActionsProvider - Initializing saved posts:', currentUser.savedPosts);
         setSavedPosts(new Set(currentUser.savedPosts));
       }
       
@@ -65,7 +69,9 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
   
   // Sync with Redux state changes (but don't override optimistic updates)
   useEffect(() => {
-    if (currentUser && feedPosts.length > 0 && isInitialized) {
+    if (currentUser && isInitialized) {
+      console.log('PostActionsProvider - Syncing with Redux state');
+      
       // Only update if there are actual changes from the backend
       const backendLikedPosts = new Set<string>();
       feedPosts.forEach(post => {
@@ -82,29 +88,96 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
         
         // Only update if arrays are different
         if (JSON.stringify(prevArray) !== JSON.stringify(backendArray)) {
+          console.log('PostActionsProvider - Updating liked posts from backend');
           return backendLikedPosts;
         }
         return prev;
       });
+      
+      // Update saved posts from user state
+      if (currentUser.savedPosts) {
+        const backendSavedPosts = new Set(currentUser.savedPosts);
+        
+        setSavedPosts(prev => {
+          const prevArray = Array.from(prev).sort();
+          const backendArray = Array.from(backendSavedPosts).sort();
+          
+          // Only update if arrays are different
+          if (JSON.stringify(prevArray) !== JSON.stringify(backendArray)) {
+            console.log('PostActionsProvider - Updating saved posts from backend');
+            return backendSavedPosts;
+          }
+          return prev;
+        });
+      }
     }
   }, [feedPosts, currentUser, isInitialized]);
   
   // Toggle save post status
   const toggleSavePost = useCallback((postId: string, userId: string) => {
+    if (!currentUser) return;
+    
+    console.log('PostActionsProvider - toggleSavePost called for post:', postId, 'user:', userId);
+    
+    // Optimistically update the UI first
     setSavedPosts(prev => {
-      const newSet = new Set(prev);
+      const newSet = new Set(Array.from(prev));
       
       if (newSet.has(postId)) {
+        console.log('PostActionsProvider - Unsaving post:', postId);
         newSet.delete(postId);
-        dispatch(unsavePost(postId));
+        
+        // Call the API directly
+        unsavePostService(userId, postId)
+          .then(updatedUser => {
+            console.log('PostActionsProvider - Unsave API response:', updatedUser);
+            // Update Redux state
+            dispatch(unsavePost(postId));
+            
+            // Update local state with the latest savedPosts from the API
+            if (updatedUser && updatedUser.savedPosts) {
+              setSavedPosts(new Set(updatedUser.savedPosts));
+            }
+          })
+          .catch(error => {
+            console.error('PostActionsProvider - Error unsaving post:', error);
+            // Revert optimistic update on error
+            setSavedPosts(prevSet => {
+              const revertedSet = new Set(Array.from(prevSet));
+              revertedSet.add(postId);
+              return revertedSet;
+            });
+          });
       } else {
+        console.log('PostActionsProvider - Saving post:', postId);
         newSet.add(postId);
-        dispatch(savePost(postId));
+        
+        // Call the API directly
+        savePostService(userId, postId)
+          .then(updatedUser => {
+            console.log('PostActionsProvider - Save API response:', updatedUser);
+            // Update Redux state
+            dispatch(savePost(postId));
+            
+            // Update local state with the latest savedPosts from the API
+            if (updatedUser && updatedUser.savedPosts) {
+              setSavedPosts(new Set(updatedUser.savedPosts));
+            }
+          })
+          .catch(error => {
+            console.error('PostActionsProvider - Error saving post:', error);
+            // Revert optimistic update on error
+            setSavedPosts(prevSet => {
+              const revertedSet = new Set(Array.from(prevSet));
+              revertedSet.delete(postId);
+              return revertedSet;
+            });
+          });
       }
       
       return newSet;
     });
-  }, [dispatch]);
+  }, [dispatch, currentUser]);
   
   // Toggle like post status with backend sync
   const toggleLikePost = useCallback((postId: string, userId: string) => {

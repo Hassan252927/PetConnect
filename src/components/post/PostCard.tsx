@@ -92,9 +92,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
   }, [currentUser, toggleLikePost, post._id, isLiked, dispatch]);
 
   const handleSaveToggle = useCallback(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('PostCard - Cannot save: No current user');
+      return;
+    }
+    
+    console.log('PostCard - Toggling save status for post:', post._id);
+    console.log('PostCard - User:', currentUser._id);
+    console.log('PostCard - Current saved status:', isSaved(post._id) ? 'Saved' : 'Not saved');
+    console.log('PostCard - Current user savedPosts:', currentUser.savedPosts);
+    
     toggleSavePost(post._id, currentUser._id);
-  }, [currentUser, toggleSavePost, post._id]);
+  }, [currentUser, toggleSavePost, post._id, isSaved]);
 
   const handleAddComment = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
