@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { login as loginService, register as registerService, User as UserModel, updateUser as updateUserService, UpdateUserRequest } from '../services/userService';
+import { login as loginService, register as registerService, User as UserModel, updateUser as updateUserService, UpdateUserRequest, savePost as savePostService, unsavePost as unsavePostService } from '../services/userService';
 import { 
   setAuthToken, 
   removeAuthToken,
@@ -138,6 +138,38 @@ export const updateProfile = createAsyncThunk(
   }
 );
 
+// Save post async thunk
+export const savePostAsync = createAsyncThunk(
+  'user/savePost',
+  async ({ userID, postID }: { userID: string; postID: string }, { rejectWithValue }) => {
+    try {
+      console.log('savePostAsync - Calling API to save post:', postID, 'for user:', userID);
+      const updatedUser = await savePostService(userID, postID);
+      console.log('savePostAsync - API response:', updatedUser);
+      return { user: updatedUser, postID };
+    } catch (error: any) {
+      console.error('savePostAsync - Error:', error);
+      return rejectWithValue(error.message || 'Failed to save post');
+    }
+  }
+);
+
+// Unsave post async thunk
+export const unsavePostAsync = createAsyncThunk(
+  'user/unsavePost',
+  async ({ userID, postID }: { userID: string; postID: string }, { rejectWithValue }) => {
+    try {
+      console.log('unsavePostAsync - Calling API to unsave post:', postID, 'for user:', userID);
+      const updatedUser = await unsavePostService(userID, postID);
+      console.log('unsavePostAsync - API response:', updatedUser);
+      return { user: updatedUser, postID };
+    } catch (error: any) {
+      console.error('unsavePostAsync - Error:', error);
+      return rejectWithValue(error.message || 'Failed to unsave post');
+    }
+  }
+);
+
 // Slice
 const userSlice = createSlice({
   name: 'user',
@@ -154,14 +186,33 @@ const userSlice = createSlice({
     },
     savePost: (state, action: PayloadAction<string>) => {
       if (state.currentUser) {
-        state.currentUser.savedPosts.push(action.payload);
+        console.log('userSlice - Saving post to Redux state:', action.payload);
+        
+        // Check if the post is already saved to avoid duplicates
+        if (!state.currentUser.savedPosts.includes(action.payload)) {
+          state.currentUser.savedPosts.push(action.payload);
+          
+          // Update stored user to maintain persistence
+          setStoredUser(state.currentUser);
+          
+          console.log('userSlice - Updated savedPosts:', state.currentUser.savedPosts);
+        } else {
+          console.log('userSlice - Post already saved, skipping:', action.payload);
+        }
       }
     },
     unsavePost: (state, action: PayloadAction<string>) => {
       if (state.currentUser) {
+        console.log('userSlice - Unsaving post from Redux state:', action.payload);
+        
         state.currentUser.savedPosts = state.currentUser.savedPosts.filter(
           (postId) => postId !== action.payload
         );
+        
+        // Update stored user to maintain persistence
+        setStoredUser(state.currentUser);
+        
+        console.log('userSlice - Updated savedPosts:', state.currentUser.savedPosts);
       }
     },
     updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
@@ -226,9 +277,30 @@ const userSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      
+      // Save Post
+      .addCase(savePostAsync.fulfilled, (state, action) => {
+        if (state.currentUser) {
+          state.currentUser = action.payload.user;
+        }
+      })
+      .addCase(savePostAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      
+      // Unsave Post
+      .addCase(unsavePostAsync.fulfilled, (state, action) => {
+        if (state.currentUser) {
+          state.currentUser = action.payload.user;
+        }
+      })
+      .addCase(unsavePostAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
       });
   },
 });
 
+// Export the slice's actions and reducer
 export const { bypassLogin, savePost, unsavePost, updateUserProfile } = userSlice.actions;
 export default userSlice.reducer; 

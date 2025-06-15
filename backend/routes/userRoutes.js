@@ -517,4 +517,28 @@ router.delete('/:id/savedPosts/:postID', async (req, res) => {
   }
 });
 
+// Get saved posts for a user with populated data
+router.get('/:id/savedPosts', async (req, res) => {
+  try {
+    console.log('Fetching saved posts for user:', req.params.id);
+    const user = await User.findById(req.params.id).populate({
+      path: 'savedPosts',
+      populate: [
+        { path: 'userID', select: 'username profilePic' },
+        { path: 'petID', select: 'name' }
+      ]
+    });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('Found saved posts:', user.savedPosts.length);
+    res.json(user.savedPosts);
+  } catch (err) {
+    console.error('Error fetching saved posts:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

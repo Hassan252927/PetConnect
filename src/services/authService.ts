@@ -52,6 +52,9 @@ export const getAuthToken = (): string | null => {
  * Store the user in localStorage and memory
  */
 export const setStoredUser = (user: User): void => {
+  console.log('authService - Storing user:', user);
+  console.log('authService - User savedPosts:', user.savedPosts);
+  
   currentUser = user;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 };

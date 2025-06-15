@@ -19,6 +19,7 @@ import Settings from './pages/Settings';
 import PetDetailPage from './pages/PetDetailPage';
 import PostDetailPage from './pages/PostDetailPage';
 import EditPetPage from './pages/EditPetPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -58,6 +59,7 @@ function App() {
                 <Route path="/ai-assistant" element={<AIChat />} />
                 <Route path="/profile/:id" element={<ProfilePage />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
               </Route>
               </Routes>
               

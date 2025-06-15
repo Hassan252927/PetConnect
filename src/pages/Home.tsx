@@ -9,6 +9,7 @@ import PostForm from '../components/post/PostForm';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel, { FilterOptions } from '../components/search/FilterPanel';
 import { ExtendedPost, asPost } from '../types/post';
+import { TestimonialsSection, HowItWorksSection } from '../components/landing';
 
 const Home: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -155,6 +156,14 @@ const Home: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Add new landing page components when user is not logged in */}
+      {!currentUser && (
+        <>
+          <HowItWorksSection />
+          <TestimonialsSection />
+        </>
       )}
       
       {/* Search and Filters */}

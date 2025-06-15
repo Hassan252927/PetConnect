@@ -8,6 +8,7 @@ import {
   deleteComment as deleteCommentAPI,
   deletePost as deletePostAPI
 } from '../services/postService';
+import { getSavedPosts as getSavedPostsAPI } from '../services/userService';
 import { PayloadAction } from '@reduxjs/toolkit';
 
 // Define types for populated user and pet objects within a post
@@ -58,6 +59,7 @@ export interface Post {
 export interface PostState {
   feedPosts: Post[];
   userPosts: Post[];
+  savedPosts: Post[];
   isLoading: boolean;
   error: string | null;
 }
@@ -66,6 +68,7 @@ export interface PostState {
 const initialState: PostState = {
   feedPosts: [],
   userPosts: [],
+  savedPosts: [],
   isLoading: false,
   error: null,
 };
@@ -91,6 +94,20 @@ export const fetchUserPosts = createAsyncThunk(
       return posts;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch user posts');
+    }
+  }
+);
+
+export const fetchSavedPosts = createAsyncThunk(
+  'post/fetchSavedPosts',
+  async (userID: string, { rejectWithValue }) => {
+    try {
+      console.log('fetchSavedPosts thunk - Fetching saved posts for user:', userID);
+      const posts = await getSavedPostsAPI(userID);
+      return posts;
+    } catch (error: any) {
+      console.error('fetchSavedPosts thunk - Error:', error);
+      return rejectWithValue(error.message || 'Failed to fetch saved posts');
     }
   }
 );
@@ -198,6 +215,7 @@ const postSlice = createSlice({
     clearPosts: (state) => {
       state.feedPosts = [];
       state.userPosts = [];
+      state.savedPosts = [];
       state.error = null;
     },
     updateUserProfileData: (state, action: PayloadAction<{ userId: string; profileData: { username?: string; profilePic?: string; bio?: string } }>) => {
@@ -338,6 +356,20 @@ const postSlice = createSlice({
         state.userPosts = action.payload as Post[];
       })
       .addCase(fetchUserPosts.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Fetch saved posts
+      .addCase(fetchSavedPosts.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchSavedPosts.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.savedPosts = action.payload;
+      })
+      .addCase(fetchSavedPosts.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

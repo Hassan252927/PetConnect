@@ -21,6 +21,42 @@ export const getPostById = (postID: string): Promise<Post> => {
 };
 
 /**
+ * Get saved posts for a user
+ * @param userID - The ID of the user
+ * @returns A promise that resolves to an array of saved posts
+ */
+export const getSavedPosts = async (userID: string): Promise<Post[]> => {
+  try {
+    console.log('postService.getSavedPosts - Fetching saved posts for user:', userID);
+    const user = await apiClient.get(`/users/${userID}`);
+    
+    if (!user.savedPosts || user.savedPosts.length === 0) {
+      console.log('postService.getSavedPosts - No saved posts found');
+      return [];
+    }
+    
+    // Fetch each saved post
+    const savedPostsPromises = user.savedPosts.map((postID: string) => 
+      getPostById(postID).catch(error => {
+        console.error(`Error fetching post ${postID}:`, error);
+        return null;
+      })
+    );
+    
+    const savedPosts = await Promise.all(savedPostsPromises);
+    
+    // Filter out any failed requests
+    const validPosts = savedPosts.filter(post => post !== null);
+    console.log('postService.getSavedPosts - Fetched posts:', validPosts.length);
+    
+    return validPosts;
+  } catch (error) {
+    console.error('postService.getSavedPosts - Error:', error);
+    throw error;
+  }
+};
+
+/**
  * Create a new post
  * @param postData - The data for the new post
  * @returns A promise that resolves to the created post
@@ -94,6 +130,7 @@ export const searchPosts = (query: string): Promise<Post[]> => {
 const postService = {
   getFeedPosts,
   getPostById,
+  getSavedPosts,
   createPost,
   updatePost,
   deletePost,

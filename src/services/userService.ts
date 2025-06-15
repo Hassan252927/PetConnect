@@ -151,6 +151,59 @@ export const checkUsernameAvailability = (
   return apiClient.get(url, { params });
 };
 
+/**
+ * Save a post for a user
+ * @param userID - The ID of the user
+ * @param postID - The ID of the post to save
+ * @returns A promise that resolves to the updated user
+ */
+export const savePost = async (userID: string, postID: string): Promise<User> => {
+  console.log('userService.savePost - Saving post:', postID, 'for user:', userID);
+  try {
+    const response = await apiClient.post(`/users/${userID}/savedPosts`, { postID });
+    console.log('userService.savePost - API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('userService.savePost - Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Unsave a post for a user
+ * @param userID - The ID of the user
+ * @param postID - The ID of the post to unsave
+ * @returns A promise that resolves to the updated user
+ */
+export const unsavePost = async (userID: string, postID: string): Promise<User> => {
+  console.log('userService.unsavePost - Unsaving post:', postID, 'for user:', userID);
+  try {
+    const response = await apiClient.delete(`/users/${userID}/savedPosts/${postID}`);
+    console.log('userService.unsavePost - API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('userService.unsavePost - Error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get saved posts for a user
+ * @param userID - The ID of the user
+ * @returns A promise that resolves to an array of saved posts
+ */
+export const getSavedPosts = async (userID: string): Promise<any[]> => {
+  console.log('userService.getSavedPosts - Fetching saved posts for user:', userID);
+  try {
+    const response = await apiClient.get(`/users/${userID}/savedPosts`);
+    console.log('userService.getSavedPosts - Found saved posts:', response.data.length);
+    return response.data;
+  } catch (error) {
+    console.error('userService.getSavedPosts - Error:', error);
+    throw error;
+  }
+};
+
 export default {
   register,
   login,
@@ -161,4 +214,7 @@ export default {
   toggleFollowUser,
   searchUsers,
   checkUsernameAvailability,
+  savePost,
+  unsavePost,
+  getSavedPosts,
 }; 
