@@ -84,11 +84,13 @@ export const searchPets = (
   });
 };
 
-export default {
+const petService = {
   getUserPets,
   getPetById,
   createPet,
   updatePet,
   deletePet,
   searchPets,
-}; 
+};
+
+export default petService; 

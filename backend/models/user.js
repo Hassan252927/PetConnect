@@ -25,7 +25,8 @@ const userSchema = new Schema({
   profilePic: { type: String },
   bio: { type: String },
   savedPosts: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
-  pets: [{ type: Schema.Types.ObjectId, ref: 'Pet' }]
+  pets: [{ type: Schema.Types.ObjectId, ref: 'Pet' }],
+  notificationsEnabled: { type: Boolean, default: true }
 }, {
   timestamps: true // This adds createdAt and updatedAt automatically
 });

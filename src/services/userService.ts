@@ -9,6 +9,7 @@ export interface User {
   bio?: string;
   savedPosts: string[];
   pets: string[];
+  notificationsEnabled?: boolean;
 }
 
 // Interface for user login
@@ -104,15 +105,53 @@ export const updateCurrentUser = (userData: UpdateUserRequest): Promise<User> =>
  * Change the current user's password
  * @param currentPassword - The current password
  * @param newPassword - The new password
+ * @param userId - The user ID
  * @returns A promise that resolves when the password is changed
  */
 export const changePassword = (
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
+  userId: string
 ): Promise<void> => {
   return apiClient.post('/users/change-password', {
     currentPassword,
     newPassword,
+    userId,
+  });
+};
+
+/**
+ * Change the current user's email
+ * @param newEmail - The new email address
+ * @param password - The current password for verification
+ * @param userId - The user ID
+ * @returns A promise that resolves to the response with updated user data
+ */
+export const changeEmail = (
+  newEmail: string,
+  password: string,
+  userId: string
+): Promise<{ message: string; user: User }> => {
+  return apiClient.post('/users/change-email', {
+    newEmail,
+    password,
+    userId,
+  });
+};
+
+/**
+ * Update notification preferences
+ * @param userId - The user ID
+ * @param notificationsEnabled - Whether notifications should be enabled
+ * @returns A promise that resolves to the response with updated user data
+ */
+export const updateNotificationPreferences = (
+  userId: string,
+  notificationsEnabled: boolean
+): Promise<{ message: string; user: User }> => {
+  return apiClient.post('/users/notification-preferences', {
+    userId,
+    notificationsEnabled,
   });
 };
 
@@ -161,8 +200,10 @@ export const savePost = async (userID: string, postID: string): Promise<User> =>
   console.log('userService.savePost - Saving post:', postID, 'for user:', userID);
   try {
     const response = await apiClient.post(`/users/${userID}/savedPosts`, { postID });
-    console.log('userService.savePost - API response:', response.data);
-    return response.data;
+    console.log('userService.savePost - Raw response:', response);
+    console.log('userService.savePost - Response type:', typeof response);
+    // The apiClient.post method should return response.data directly
+    return response;
   } catch (error) {
     console.error('userService.savePost - Error:', error);
     throw error;
@@ -195,20 +236,30 @@ export const unsavePost = async (userID: string, postID: string): Promise<User> 
 export const getSavedPosts = async (userID: string): Promise<any[]> => {
   console.log('userService.getSavedPosts - Fetching saved posts for user:', userID);
   try {
+    console.log('userService.getSavedPosts - Making API call to:', `/users/${userID}/savedPosts`);
     const response = await apiClient.get(`/users/${userID}/savedPosts`);
-    console.log('userService.getSavedPosts - API response status:', response.status);
-    console.log('userService.getSavedPosts - Found saved posts:', response.data.length);
-    if (response.data.length > 0) {
-      console.log('userService.getSavedPosts - First post:', response.data[0]);
+    console.log('userService.getSavedPosts - Raw response object:', response);
+    console.log('userService.getSavedPosts - Response type:', typeof response);
+    console.log('userService.getSavedPosts - Response keys:', Object.keys(response || {}));
+    
+    // The apiClient.get method should return response.data directly
+    // So 'response' here is actually the data, not the full axios response
+    const savedPosts = Array.isArray(response) ? response : [];
+    console.log('userService.getSavedPosts - Processed saved posts:', savedPosts.length);
+    
+    if (savedPosts.length > 0) {
+      console.log('userService.getSavedPosts - First post:', savedPosts[0]);
     }
-    return response.data;
+    
+    return savedPosts;
   } catch (error) {
     console.error('userService.getSavedPosts - Error:', error);
-    throw error;
+    // Return empty array instead of throwing error to prevent app crashes
+    return [];
   }
 };
 
-export default {
+const userService = {
   register,
   login,
   getCurrentUser,
@@ -221,4 +272,6 @@ export default {
   savePost,
   unsavePost,
   getSavedPosts,
-}; 
+};
+
+export default userService; 

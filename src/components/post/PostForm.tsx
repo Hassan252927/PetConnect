@@ -86,8 +86,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSuccess, onCancel }) => {
       //('Creating post with data:', postData);
       
       // Create the post
-      const result = await dispatch(createPost(postData)).unwrap();
-      //('Post created successfully:', result);
+      await dispatch(createPost(postData)).unwrap();
       
       // Fetch updated feed posts after successful creation
       await dispatch(fetchFeedPosts({ userID: currentUser._id, pets: [] }));

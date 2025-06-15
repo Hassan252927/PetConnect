@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { savePost, unsavePost } from '../store/userSlice';
 import { likePost } from '../store/postSlice';
+import { fetchUnreadCount, fetchNotifications } from '../store/notificationSlice';
 import { savePost as savePostService, unsavePost as unsavePostService } from '../services/userService';
 
 // Define the context type
@@ -65,13 +66,11 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
       
       setIsInitialized(true);
     }
-  }, [currentUser, feedPosts, isInitialized]);
+  }, [currentUser, isInitialized]); // Removed feedPosts from dependency to prevent re-initialization
   
   // Sync with Redux state changes (but don't override optimistic updates)
   useEffect(() => {
     if (currentUser && isInitialized) {
-      console.log('PostActionsProvider - Syncing with Redux state');
-      
       // Only update if there are actual changes from the backend
       const backendLikedPosts = new Set<string>();
       feedPosts.forEach(post => {
@@ -196,6 +195,10 @@ export const PostActionsProvider: React.FC<PostActionsProviderProps> = ({
     
     // Then sync with backend
     dispatch(likePost({ postID: postId, userID: userId }));
+    
+    // Refresh notifications after liking
+    dispatch(fetchUnreadCount(userId));
+    dispatch(fetchNotifications(userId));
   }, [dispatch]);
   
   // Check if a post is saved

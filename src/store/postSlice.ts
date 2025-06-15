@@ -3,6 +3,7 @@ import { Pet } from './petSlice';
 import { 
   getFeedPosts, 
   createPost as createPostAPI, 
+  updatePost as updatePostAPI,
   toggleLikePost as toggleLikePostAPI, 
   addComment as addCommentAPI,
   deleteComment as deleteCommentAPI,
@@ -21,6 +22,8 @@ export interface UserInPost {
 export interface PetInPost {
   _id: string;
   name: string;
+  animal: string;
+  breed: string;
 }
 
 export interface Comment {
@@ -43,7 +46,7 @@ export interface Post {
   userID: string;
   username: string;
   profilePic: string;
-  petID?: string;
+  petID?: string | PetInPost; // Can be string ID or populated pet object
   petName?: string;
   media?: string;
   caption: string;
@@ -146,6 +149,21 @@ export const createPost = createAsyncThunk(
       return newPost;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create post');
+    }
+  }
+);
+
+export const updatePost = createAsyncThunk(
+  'post/updatePost',
+  async (
+    { postID, caption }: { postID: string; caption: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const updatedPost = await updatePostAPI(postID, { caption });
+      return updatedPost;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update post');
     }
   }
 );
@@ -379,6 +397,20 @@ const postSlice = createSlice({
         const newPost = action.payload as Post;
         state.feedPosts.unshift(newPost);
         state.userPosts.unshift(newPost);
+      })
+      
+      // Update post
+      .addCase(updatePost.fulfilled, (state, action) => {
+        const updatedPost = action.payload as Post;
+        const updatePostInArray = (posts: Post[]) => {
+          const index = posts.findIndex(p => p._id === updatedPost._id);
+          if (index !== -1) {
+            posts[index] = { ...posts[index], ...updatedPost };
+          }
+        };
+        updatePostInArray(state.feedPosts);
+        updatePostInArray(state.userPosts);
+        updatePostInArray(state.savedPosts);
       })
       
       // Like post

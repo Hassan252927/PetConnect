@@ -6,7 +6,7 @@ import {
   setStoredUser,
   initializeAuth
 } from '../services/authService';
-import apiClient from '../services/apiClient';
+
 
 // Types
 export type User = UserModel;
@@ -184,6 +184,11 @@ const userSlice = createSlice({
       setAuthToken('dev-token');
       setStoredUser(action.payload);
     },
+    // Direct user update action for settings changes
+    updateUserData: (state, action: PayloadAction<User>) => {
+      state.currentUser = action.payload;
+      setStoredUser(action.payload);
+    },
     savePost: (state, action: PayloadAction<string>) => {
       if (state.currentUser) {
         console.log('userSlice - Saving post to Redux state:', action.payload);
@@ -302,5 +307,5 @@ const userSlice = createSlice({
 });
 
 // Export the slice's actions and reducer
-export const { bypassLogin, savePost, unsavePost, updateUserProfile } = userSlice.actions;
+export const { bypassLogin, savePost, unsavePost, updateUserProfile, updateUserData } = userSlice.actions;
 export default userSlice.reducer; 

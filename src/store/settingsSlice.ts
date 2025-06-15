@@ -60,8 +60,12 @@ const settingsSlice = createSlice({
       state.notifications = !state.notifications;
       localStorage.setItem('notifications', state.notifications.toString());
     },
+    setNotifications: (state, action: PayloadAction<boolean>) => {
+      state.notifications = action.payload;
+      localStorage.setItem('notifications', action.payload.toString());
+    },
   },
 });
 
-export const { toggleDarkMode, setDarkMode, setFontSize, toggleNotifications } = settingsSlice.actions;
+export const { toggleDarkMode, setDarkMode, setFontSize, toggleNotifications, setNotifications } = settingsSlice.actions;
 export default settingsSlice.reducer; 

@@ -3,6 +3,7 @@ const router = express.Router();
 const Post = require('../models/post');
 const Comment = require('../models/comment');
 const Notification = require('../models/notification');
+const User = require('../models/user');
 
 // Get all posts
 router.get('/', async (req, res) => {
@@ -175,13 +176,17 @@ router.post('/:id/like', async (req, res) => {
       
       // Create notification only if user is not liking their own post
       if (post.userID.toString() !== userID) {
-        const notification = new Notification({
-          userID: post.userID,
-          type: 'like',
-          senderID: userID,
-          postID: post._id
-        });
-        await notification.save();
+        // Check if the post owner has notifications enabled
+        const postOwner = await User.findById(post.userID);
+        if (postOwner && postOwner.notificationsEnabled) {
+          const notification = new Notification({
+            userID: post.userID,
+            type: 'like',
+            senderID: userID,
+            postID: post._id
+          });
+          await notification.save();
+        }
       }
     }
 
@@ -226,15 +231,19 @@ router.post('/:id/comment', async (req, res) => {
 
     // Create notification only if user is not commenting on their own post
     if (post.userID.toString() !== req.body.userID) {
-      const notification = new Notification({
-        userID: post.userID,
-        type: 'comment',
-        senderID: req.body.userID,
-        postID: post._id,
-        commentID: newComment._id,
-        content: req.body.content.length > 30 ? `${req.body.content.substring(0, 30)}...` : req.body.content
-      });
-      await notification.save();
+      // Check if the post owner has notifications enabled
+      const postOwner = await User.findById(post.userID);
+      if (postOwner && postOwner.notificationsEnabled) {
+        const notification = new Notification({
+          userID: post.userID,
+          type: 'comment',
+          senderID: req.body.userID,
+          postID: post._id,
+          commentID: newComment._id,
+          content: req.body.content.length > 30 ? `${req.body.content.substring(0, 30)}...` : req.body.content
+        });
+        await notification.save();
+      }
     }
 
     // Return the updated post with populated data

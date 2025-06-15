@@ -1,12 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { toggleDarkMode, setFontSize, toggleNotifications } from '../store/settingsSlice';
+import { toggleDarkMode, setFontSize, toggleNotifications, setNotifications } from '../store/settingsSlice';
+import { updateNotificationPreferences } from '../services/userService';
+import { updateUserData } from '../store/userSlice';
 import Layout from '../components/layout/Layout';
+import ChangePasswordModal from '../components/settings/ChangePasswordModal';
+import ChangeEmailModal from '../components/settings/ChangeEmailModal';
 
 const Settings: React.FC = () => {
   const dispatch = useAppDispatch();
   const { darkMode, fontSize, notifications } = useAppSelector((state) => state.settings);
   const { currentUser } = useAppSelector((state) => state.user);
+  
+  // Modal states
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+
+  // Sync notification settings with user data
+  useEffect(() => {
+    if (currentUser && typeof currentUser.notificationsEnabled === 'boolean') {
+      dispatch(setNotifications(currentUser.notificationsEnabled));
+    }
+  }, [currentUser, dispatch]);
+
+  // Handle notification preference changes
+  const handleNotificationToggle = async () => {
+    if (!currentUser) return;
+    
+    const newNotificationState = !currentUser.notificationsEnabled;
+    
+    try {
+      const response = await updateNotificationPreferences(currentUser._id, newNotificationState);
+      dispatch(updateUserData(response.user));
+      dispatch(setNotifications(newNotificationState)); // Update local settings state
+    } catch (error) {
+      console.error('Failed to update notification preferences:', error);
+    }
+  };
 
   // Settings sections
   const settingsSections = [
@@ -45,8 +75,8 @@ const Settings: React.FC = () => {
           name: 'Enable Notifications',
           description: 'Receive notifications for messages, likes, and comments',
           type: 'toggle',
-          value: notifications,
-          onChange: () => dispatch(toggleNotifications()),
+          value: currentUser?.notificationsEnabled ?? true,
+          onChange: handleNotificationToggle,
         },
       ],
     },
@@ -57,19 +87,19 @@ const Settings: React.FC = () => {
           id: 'email',
           name: 'Email',
           description: 'Change your email address',
-          type: 'link',
+          type: 'button',
           value: currentUser?.email,
-          linkText: 'Change Email',
-          linkPath: '/settings/email',
+          buttonText: 'Change Email',
+          onClick: () => setIsEmailModalOpen(true),
         },
         {
           id: 'password',
           name: 'Password',
           description: 'Update your password',
-          type: 'link',
+          type: 'button',
           value: '••••••••',
-          linkText: 'Change Password',
-          linkPath: '/settings/password',
+          buttonText: 'Change Password',
+          onClick: () => setIsPasswordModalOpen(true),
         },
       ],
     },
@@ -103,13 +133,16 @@ const Settings: React.FC = () => {
             ))}
           </select>
         );
-      case 'link':
+      case 'button':
         return (
           <div className="flex items-center space-x-2">
             <span className="text-gray-500 dark:text-gray-400">{item.value}</span>
-            <a href={item.linkPath} className="text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
-              {item.linkText}
-            </a>
+            <button 
+              onClick={item.onClick}
+              className="text-primary hover:text-primary-dark dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+            >
+              {item.buttonText}
+            </button>
           </div>
         );
       default:
@@ -176,6 +209,20 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Modals */}
+        <ChangePasswordModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => setIsPasswordModalOpen(false)}
+          userId={currentUser?._id || ''}
+        />
+        
+        <ChangeEmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          userId={currentUser?._id || ''}
+          currentEmail={currentUser?.email || ''}
+        />
       </div>
     </Layout>
   );

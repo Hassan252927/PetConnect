@@ -104,7 +104,7 @@ export const initializeAuth = (): { token: string | null; user: User | null } =>
   return { token, user };
 };
 
-export default {
+const authService = {
   setAuthToken,
   removeAuthToken,
   getAuthToken,
@@ -112,4 +112,6 @@ export default {
   getStoredUser,
   isAuthenticated,
   initializeAuth,
-}; 
+};
+
+export default authService; 

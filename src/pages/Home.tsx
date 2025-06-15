@@ -8,7 +8,7 @@ import PostCard from '../components/post/PostCard';
 import PostForm from '../components/post/PostForm';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel, { FilterOptions } from '../components/search/FilterPanel';
-import { ExtendedPost, asPost } from '../types/post';
+
 import { TestimonialsSection, HowItWorksSection } from '../components/landing';
 
 const Home: React.FC = () => {
@@ -29,14 +29,20 @@ const Home: React.FC = () => {
     gender: '',
     location: ''
   });
-  const [activeTab, setActiveTab] = useState('latest');
+  const [activeTab, setActiveTab] = useState<'latest' | 'trending'>('latest');
   
   useEffect(() => {
     if (currentUser) {
       dispatch(fetchUserPets(currentUser._id));
+    }
+  }, [dispatch, currentUser]);
+
+  // Separate effect to fetch posts when pets are loaded
+  useEffect(() => {
+    if (currentUser && pets.length > 0) {
       dispatch(fetchFeedPosts({ pets }));
     }
-  }, [dispatch, currentUser, pets.length]);
+  }, [dispatch, currentUser, pets]);
   
   // Apply filters and search to posts using useMemo to prevent unnecessary recalculations
   const filteredPosts = useMemo(() => {
@@ -51,16 +57,52 @@ const Home: React.FC = () => {
       );
     }
     
-    // Apply animal type filter if using tags
+    // Apply animal type filter by checking the pet's animal type
     if (activeFilters.animalType) {
-      filtered = filtered.filter(post => 
-        post.tags.includes(activeFilters.animalType.toLowerCase())
-      );
+      filtered = filtered.filter(post => {
+        // Check if the post has a populated petID with animal type
+        if (post.petID && typeof post.petID === 'object' && 'animal' in post.petID) {
+          return post.petID.animal.toLowerCase() === activeFilters.animalType.toLowerCase();
+        }
+        
+        // Fallback: check tags if pet data is not populated
+        if (post.tags && post.tags.length > 0) {
+          return post.tags.some(tag => 
+            tag.toLowerCase() === activeFilters.animalType.toLowerCase()
+          );
+        }
+        
+        return false;
+      });
+    }
+    
+    // Apply breed filter by checking the pet's breed
+    if (activeFilters.breed) {
+      filtered = filtered.filter(post => {
+        // Check if the post has a populated petID with breed
+        if (post.petID && typeof post.petID === 'object' && 'breed' in post.petID) {
+          return post.petID.breed.toLowerCase() === activeFilters.breed.toLowerCase();
+        }
+        
+        // Fallback: check tags if pet data is not populated
+        if (post.tags && post.tags.length > 1) {
+          return post.tags.some(tag => 
+            tag.toLowerCase() === activeFilters.breed.toLowerCase()
+          );
+        }
+        
+        return false;
+      });
     }
     
     // Sort based on active tab
     if (activeTab === 'trending') {
-      filtered.sort((a, b) => b.likes.length - a.likes.length);
+      // Sort by engagement score (likes + comments)
+      filtered.sort((a, b) => {
+        const aEngagement = (a.likes?.length || 0) + (a.commentsCount || 0);
+        const bEngagement = (b.likes?.length || 0) + (b.commentsCount || 0);
+        return bEngagement - aEngagement;
+      });
     } else if (activeTab === 'latest') {
       filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }
@@ -260,7 +302,12 @@ const Home: React.FC = () => {
                 }`}
                 onClick={() => setActiveTab('latest')}
               >
-                Latest
+                <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Latest
+                </div>
               </button>
               <button
                 className={`flex-1 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
@@ -270,17 +317,12 @@ const Home: React.FC = () => {
                 }`}
                 onClick={() => setActiveTab('trending')}
               >
-                Trending
-              </button>
-              <button
-                className={`flex-1 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
-                  activeTab === 'following'
-                  ? 'bg-primary text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                onClick={() => setActiveTab('following')}
-              >
-                Following
+                <div className="flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  Trending
+                </div>
               </button>
             </div>
             
@@ -297,7 +339,7 @@ const Home: React.FC = () => {
                 <p className="font-medium">Error loading posts</p>
                 <p className="text-sm">{error}</p>
                 <button
-                  onClick={() => dispatch(fetchFeedPosts({ pets }))}
+                  onClick={() => dispatch(fetchFeedPosts({ pets: pets.length > 0 ? pets : [] }))}
                   className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
                 >
                   Try again
@@ -309,12 +351,51 @@ const Home: React.FC = () => {
             {!isLoading && !error && (
               <div className="space-y-6">
                 {filteredPosts.length > 0 ? (
-                  filteredPosts.map((post) => (
-                    <PostCard
-                      key={post._id}
-                      post={post}
-                      onViewPost={() => handleViewPost(post)}
-                    />
+                  filteredPosts.map((post, index) => (
+                    <div key={post._id} className="relative">
+                      {/* Trending Badge */}
+                      {activeTab === 'trending' && index < 3 && (
+                        <div className="absolute top-4 right-4 z-10">
+                          <div className="bg-gradient-to-r from-orange-400 to-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                            </svg>
+                            #{index + 1}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Engagement Score for Trending */}
+                      {activeTab === 'trending' && (
+                        <div className="absolute top-4 left-4 z-10">
+                          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 shadow-sm">
+                            <div className="flex items-center space-x-2 text-xs">
+                              <div className="flex items-center text-red-500">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                </svg>
+                                {post.likes?.length || 0}
+                              </div>
+                              <span className="text-gray-400">+</span>
+                              <div className="flex items-center text-blue-500">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                {post.commentsCount || 0}
+                              </div>
+                              <span className="text-gray-500 font-medium">
+                                = {(post.likes?.length || 0) + (post.commentsCount || 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <PostCard
+                        post={post}
+                        onViewPost={() => handleViewPost(post)}
+                      />
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-12 bg-white rounded-lg shadow-md">
@@ -454,9 +535,39 @@ const Home: React.FC = () => {
               </div>
             )}
             
+            {/* Trending Posts Info */}
+            {activeTab === 'trending' && (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-accent to-green-500 p-4 text-white">
+                  <h3 className="text-lg font-semibold">🔥 Most Engaging Posts</h3>
+                  <p className="text-sm opacity-90 mt-1">Sorted by likes + comments</p>
+                </div>
+                <div className="p-4">
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">Posts are ranked by total engagement:</p>
+                    <div className="flex items-center space-x-4 text-xs">
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-1 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                        </svg>
+                        Likes
+                      </div>
+                      <span>+</span>
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Comments
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Trending Topics Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-accent to-green-500 p-4 text-white">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white">
                 <h3 className="text-lg font-semibold">Trending Topics</h3>
               </div>
               <div className="p-4">

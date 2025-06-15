@@ -12,6 +12,21 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get pets by user ID
+router.get('/user/:userID', async (req, res) => {
+  try {
+    const pets = await Pet.find({ 
+      $or: [
+        { userID: req.params.userID },
+        { ownerID: req.params.userID }
+      ]
+    }).populate('posts');
+    res.json(pets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get a single pet by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -26,7 +41,16 @@ router.get('/:id', async (req, res) => {
 // Create a new pet
 router.post('/', async (req, res) => {
   try {
-    const pet = new Pet(req.body);
+    const petData = { ...req.body };
+    
+    // Ensure both userID and ownerID are set for compatibility
+    if (petData.ownerID && !petData.userID) {
+      petData.userID = petData.ownerID;
+    } else if (petData.userID && !petData.ownerID) {
+      petData.ownerID = petData.userID;
+    }
+    
+    const pet = new Pet(petData);
     await pet.save();
     res.status(201).json(pet);
   } catch (err) {

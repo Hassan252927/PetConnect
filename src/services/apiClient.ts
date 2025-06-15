@@ -50,11 +50,18 @@ export class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Add response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError<ApiErrorResponse>) => this.handleApiError(error)
-    );
+      // Add response interceptor for error handling
+  this.client.interceptors.response.use(
+    (response) => {
+      console.log('API Response interceptor:', {
+        url: response.config.url,
+        status: response.status,
+        data: response.data
+      });
+      return response;
+    },
+    (error: AxiosError<ApiErrorResponse>) => this.handleApiError(error)
+  );
   }
 
   // Set the auth token for future requests

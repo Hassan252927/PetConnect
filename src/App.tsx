@@ -18,6 +18,7 @@ import ProfilePage from './pages/ProfilePage';
 import Settings from './pages/Settings';
 import PetDetailPage from './pages/PetDetailPage';
 import PostDetailPage from './pages/PostDetailPage';
+import EditPostPage from './pages/EditPostPage';
 import EditPetPage from './pages/EditPetPage';
 import NotificationsPage from './pages/NotificationsPage';
 
@@ -55,9 +56,11 @@ function App() {
                 <Route path="/pets/:id" element={<PetDetailPage />} />
                 <Route path="/pets/:id/edit" element={<EditPetPage />} />
                 <Route path="/posts/:id" element={<PostDetailPage />} />
+                <Route path="/posts/:id/edit" element={<EditPostPage />} />
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/ai-assistant" element={<AIChat />} />
                 <Route path="/profile/:id" element={<ProfilePage />} />
+                <Route path="/profile/me/notifications" element={<NotificationsPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
               </Route>

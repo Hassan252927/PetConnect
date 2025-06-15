@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Post, addComment, deleteComment, Comment as PostComment } from '../../store/postSlice';
+import { Post, addComment, deleteComment, updatePost, Comment as PostComment } from '../../store/postSlice';
 import { useAppDispatch } from '../../hooks/useRedux';
 import { ExtendedPost } from '../../types/post';
 import { useShallowEqualSelector } from '../../hooks/useShallowEqualSelector';
 import { usePostActions } from '../../providers/PostActionsProvider';
 import { getPetById } from '../../services/petService';
-import { fetchUnreadCount } from '../../store/notificationSlice';
+import { fetchUnreadCount, fetchNotifications } from '../../store/notificationSlice';
 
 interface PostCardProps {
   post: Post | ExtendedPost;
@@ -30,26 +30,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
   const shareOptionsRef = useRef<HTMLDivElement>(null);
   
   const [fetchedPetName, setFetchedPetName] = useState<string | null>(null);
+  
+  // Edit functionality state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCaption, setEditedCaption] = useState(post.caption);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Update local state when post changes (from Redux updates)
   useEffect(() => {
     setLikesCount(post.likes?.length || 0);
     setLocalComments(post.comments || []);
-  }, [post.likes, post.comments]);
+    setEditedCaption(post.caption);
+  }, [post.likes, post.comments, post.caption]);
 
-  // Debug: Track username changes
-  useEffect(() => {
-    console.log('PostCard - Post username changed to:', post.username, 'for post:', post._id);
-  }, [post.username, post._id]);
-
-  // Debug: Track when entire post object changes
-  useEffect(() => {
-    console.log('PostCard - Post object changed:', {
-      id: post._id,
-      username: post.username,
-      profilePic: post.profilePic
-    });
-  }, [post]);
+  // Removed debug logs to prevent console spam
 
   useEffect(() => {
     let petIdToFetch: string | null = null;
@@ -137,8 +131,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
       })
     );
 
-    // Refresh notification count after commenting
+    // Refresh notifications after commenting
     dispatch(fetchUnreadCount(currentUser._id));
+    dispatch(fetchNotifications(currentUser._id));
     
     setComment('');
   }, [comment, currentUser, dispatch, post._id]);
@@ -191,6 +186,33 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
     
     setShowShareOptions(false);
   }, [post._id]);
+
+  const handleEditCaption = useCallback(() => {
+    setIsEditing(true);
+    setEditedCaption(post.caption);
+  }, [post.caption]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!currentUser || !editedCaption.trim()) return;
+    
+    setIsUpdating(true);
+    try {
+      await dispatch(updatePost({ 
+        postID: post._id, 
+        caption: editedCaption.trim() 
+      }));
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating post:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [currentUser, editedCaption, dispatch, post._id]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false);
+    setEditedCaption(post.caption);
+  }, [post.caption]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -245,6 +267,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
             </div>
           </div>
         </div>
+        
+        {/* Edit button - only show for post owner */}
+        {currentUser && currentUser._id === post.userID && (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleEditCaption}
+              className="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Edit post inline"
+              title="Quick edit"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <Link
+              to={`/posts/${post._id}/edit`}
+              className="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Edit post in full page"
+              title="Full page edit"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M7 7h.01M7 3a4 4 0 014 4v1a3 3 0 003 3h1a4 4 0 014-4" />
+              </svg>
+            </Link>
+          </div>
+        )}
       </div>
       
       <div
@@ -271,7 +319,37 @@ const PostCard: React.FC<PostCardProps> = ({ post, onViewPost }) => {
       
       <div className="p-4 dark:text-gray-200">
         {post.caption && (
-          <p className="mb-4 text-gray-800 dark:text-gray-200">{post.caption}</p>
+          <div className="mb-4">
+            {isEditing ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editedCaption}
+                  onChange={(e) => setEditedCaption(e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-300 dark:focus:ring-primary-700 focus:outline-none text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 resize-none"
+                  rows={3}
+                  placeholder="Edit your caption..."
+                />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={isUpdating}
+                    className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isUpdating || !editedCaption.trim()}
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600 dark:hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-800 dark:text-gray-200">{post.caption}</p>
+            )}
+          </div>
         )}
         
         <div className="flex items-center justify-between mb-4">

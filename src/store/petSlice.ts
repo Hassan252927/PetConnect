@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import petService from '../services/petService';
 
 // Define types for pet-related data
 export interface Pet {
@@ -12,6 +13,8 @@ export interface Pet {
   image?: string;
   description?: string;
   ownerID: string;
+  userID?: string; // For compatibility
+  posts?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -21,38 +24,6 @@ export interface PetState {
   isLoading: boolean;
   error: string | null;
 }
-
-// Generate mock pet data
-const generateMockPets = (ownerID: string): Pet[] => [
-  {
-    _id: '674c38a66e0a72eb81a6d620', // Use actual ObjectId from seedPets.js
-    name: 'Buddy',
-    animal: 'Dog',
-    breed: 'Golden Retriever',
-    age: 3,
-    gender: 'Male',
-    weight: 65,
-    image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-    description: 'Friendly and energetic golden retriever who loves to play fetch.',
-    ownerID,
-    createdAt: new Date(Date.now() - 7776000000).toISOString(), // 90 days ago
-    updatedAt: new Date(Date.now() - 864000000).toISOString(), // 10 days ago
-  },
-  {
-    _id: '674c38a66e0a72eb81a6d621', // Use actual ObjectId from seedPets.js
-    name: 'Max',
-    animal: 'Dog',
-    breed: 'Golden Retriever',
-    age: 5,
-    gender: 'Female',
-    weight: 55,
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
-    description: 'Energetic and playful golden retriever.',
-    ownerID,
-    createdAt: new Date(Date.now() - 15552000000).toISOString(), // 180 days ago
-    updatedAt: new Date(Date.now() - 1728000000).toISOString(), // 20 days ago
-  },
-];
 
 // Initial state
 const initialState: PetState = {
@@ -66,11 +37,8 @@ export const fetchUserPets = createAsyncThunk(
   'pet/fetchUserPets',
   async (userID: string, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.get(`/users/${userID}/pets`);
-      
-      // For now, we'll use mock data
-      return generateMockPets(userID);
+      const pets = await petService.getUserPets(userID);
+      return pets;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch pets');
     }
@@ -81,17 +49,15 @@ export const createPet = createAsyncThunk(
   'pet/createPet',
   async (petData: Omit<Pet, '_id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.post('/pets', petData);
-      
-      // For now, we'll simulate creating a pet
-      const newPet: Pet = {
-        _id: `pet_${Date.now()}`,
-        ...petData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const createPetRequest = {
+        userID: petData.ownerID,
+        name: petData.name,
+        animal: petData.animal,
+        breed: petData.breed,
+        image: petData.image || '',
       };
       
+      const newPet = await petService.createPet(createPetRequest);
       return newPet;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create pet');
@@ -103,26 +69,19 @@ export const updatePet = createAsyncThunk(
   'pet/updatePet',
   async (
     { petID, petData }: { petID: string; petData: Partial<Pet> },
-    { rejectWithValue, getState }
+    { rejectWithValue }
   ) => {
     try {
-      // In a real app, this would be an API call
-      // const response = await apiClient.put(`/pets/${petID}`, petData);
-      
-      // For now, we'll simulate updating a pet
-      const state = getState() as { pet: PetState };
-      const existingPet = state.pet.pets.find(pet => pet._id === petID);
-      
-      if (!existingPet) {
-        throw new Error('Pet not found');
-      }
-      
-      const updatedPet: Pet = {
-        ...existingPet,
-        ...petData,
-        updatedAt: new Date().toISOString(),
+      const updatePetRequest = {
+        petID,
+        userID: petData.ownerID,
+        name: petData.name,
+        animal: petData.animal,
+        breed: petData.breed,
+        image: petData.image,
       };
       
+      const updatedPet = await petService.updatePet(updatePetRequest);
       return updatedPet;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update pet');
@@ -134,10 +93,7 @@ export const deletePet = createAsyncThunk(
   'pet/deletePet',
   async (petID: string, { rejectWithValue }) => {
     try {
-      // In a real app, this would be an API call
-      // await apiClient.delete(`/pets/${petID}`);
-      
-      // For now, we'll just return the ID to remove from state
+      await petService.deletePet(petID);
       return petID;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete pet');

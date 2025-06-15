@@ -6,7 +6,7 @@ import Layout from '../components/layout/Layout';
 import ExploreGrid from '../components/post/ExploreGrid';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel, { FilterOptions } from '../components/search/FilterPanel';
-import { ExtendedPost } from '../types/post';
+
 
 const ExplorePage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -31,8 +31,9 @@ const ExplorePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('latest');
   
   useEffect(() => {
-    dispatch(fetchFeedPosts({ pets }));
-  }, [dispatch, pets.length]);
+    // Fetch posts on initial load, don't depend on pets array to avoid infinite loops
+    dispatch(fetchFeedPosts({ pets: [] }));
+  }, [dispatch]);
   
   // Apply filters and search to posts
   useEffect(() => {
