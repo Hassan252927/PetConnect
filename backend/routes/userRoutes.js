@@ -1,9 +1,48 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/user');
 const Post = require('../models/post');
 const Comment = require('../models/comment');
 const Message = require('../models/message');
+
+// Helper function to generate JWT token
+const generateToken = (userId) => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return jwt.sign(
+    { userId },
+    secret,
+    { expiresIn: '7d' } // Token expires in 7 days
+  );
+};
+
+// Helper function to sanitize user data (remove password)
+const sanitizeUser = (user) => {
+  try {
+    const userObj = user.toObject ? user.toObject() : user;
+    delete userObj.password;
+    return userObj;
+  } catch (error) {
+    console.error('Error in sanitizeUser:', error);
+    // Fallback: manually create clean user object
+    return {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      savedPosts: user.savedPosts,
+      pets: user.pets,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+  }
+};
 
 // Get all users
 router.get('/', async (req, res) => {
@@ -15,7 +54,211 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create a new user
+// Register a new user (for frontend compatibility)
+router.post('/register', [
+  // Validation middleware
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters')
+    .matches(/^[a-zA-Z0-9._]+$/)
+    .withMessage('Username can only contain letters, numbers, dots, and underscores'),
+  
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+  
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { username, email, password } = req.body;
+
+    // Check if user already exists (case-insensitive)
+    const existingUser = await User.findOne({
+      $or: [
+        { email: { $regex: new RegExp(`^${email}$`, 'i') } },
+        { username: { $regex: new RegExp(`^${username}$`, 'i') } }
+      ]
+    });
+
+    if (existingUser) {
+      if (existingUser.email.toLowerCase() === email.toLowerCase()) {
+        return res.status(400).json({
+          message: 'User with this email already exists',
+          field: 'email'
+        });
+      } else {
+        return res.status(400).json({
+          message: 'Username is already taken',
+          field: 'username'
+        });
+      }
+    }
+
+    // Hash password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new user
+    const newUser = new User({
+      username: username.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword
+    });
+
+    await newUser.save();
+
+    // Generate JWT token
+    const token = generateToken(newUser._id);
+
+    // Return success response with token and user info
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: sanitizeUser(newUser)
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    
+    // Handle MongoDB duplicate key error (fallback)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken`,
+        field
+      });
+    }
+
+    res.status(500).json({
+      message: 'Server error during registration'
+    });
+  }
+});
+
+// Login user (for frontend compatibility)
+router.post('/login', [
+  // Validation middleware
+  body('identifier')
+    .trim()
+    .notEmpty()
+    .withMessage('Email or username is required'),
+  
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { identifier, password } = req.body;
+    console.log('Login attempt for identifier:', identifier);
+
+    // Find user by email or username (case-insensitive)
+    const user = await User.findOne({
+      $or: [
+        { email: { $regex: new RegExp(`^${identifier}$`, 'i') } },
+        { username: { $regex: new RegExp(`^${identifier}$`, 'i') } }
+      ]
+    });
+
+    if (!user) {
+      console.log('User not found for identifier:', identifier);
+      return res.status(401).json({
+        message: 'Invalid credentials'
+      });
+    }
+
+    console.log('User found:', user.username, 'ID:', user._id);
+
+    // Verify password
+    console.log('Verifying password...');
+    console.log('Plain password received:', password ? 'Present' : 'UNDEFINED');
+    console.log('Hashed password from DB:', user.password ? 'Present' : 'UNDEFINED');
+    
+    // Check if either password is undefined
+    if (!password) {
+      console.log('ERROR: Plain password is undefined or empty');
+      return res.status(400).json({
+        message: 'Password is required'
+      });
+    }
+    
+    if (!user.password) {
+      console.log('ERROR: User has no password stored in database');
+      return res.status(500).json({
+        message: 'User account has invalid password data'
+      });
+    }
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      console.log('Password verification failed for user:', user.username);
+      return res.status(401).json({
+        message: 'Invalid credentials'
+      });
+    }
+
+    console.log('Password verified successfully');
+
+    // Generate JWT token
+    console.log('Generating JWT token...');
+    const token = generateToken(user._id);
+    console.log('JWT token generated successfully');
+
+    // Sanitize user data
+    console.log('Sanitizing user data...');
+    const sanitizedUser = sanitizeUser(user);
+    console.log('User data sanitized successfully');
+
+    // Return success response with token and user info
+    res.json({
+      message: 'Login successful',
+      token,
+      user: sanitizedUser
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
+    
+    // More specific error handling
+    if (error.message && error.message.includes('JWT_SECRET')) {
+      console.error('JWT_SECRET environment variable issue');
+      return res.status(500).json({
+        message: 'Server configuration error'
+      });
+    }
+    
+    res.status(500).json({
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Create a new user (legacy endpoint)
 router.post('/', async (req, res) => {
   try {
     const user = new User(req.body);
@@ -67,8 +310,10 @@ router.get('/check/username/:username', async (req, res) => {
       });
     }
     
-    // Check if username is taken
-    const query = { username: username.toLowerCase() };
+    // Check if username is taken (case-insensitive)
+    const query = { 
+      username: { $regex: new RegExp(`^${username}$`, 'i') }
+    };
     if (excludeUserId) {
       query._id = { $ne: excludeUserId };
     }
@@ -85,6 +330,47 @@ router.get('/check/username/:username', async (req, res) => {
     res.json({ 
       available: true, 
       message: 'Username is available' 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check email availability
+router.get('/check/email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { excludeUserId } = req.query; // Optional: exclude a specific user ID (for profile updates)
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ 
+        available: false, 
+        message: 'Please provide a valid email address' 
+      });
+    }
+    
+    // Check if email is taken (case-insensitive)
+    const query = { 
+      email: { $regex: new RegExp(`^${email}$`, 'i') }
+    };
+    if (excludeUserId) {
+      query._id = { $ne: excludeUserId };
+    }
+    
+    const existingUser = await User.findOne(query);
+    
+    if (existingUser) {
+      return res.json({ 
+        available: false, 
+        message: 'User with this email already exists' 
+      });
+    }
+    
+    res.json({ 
+      available: true, 
+      message: 'Email is available' 
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -115,7 +401,7 @@ router.put('/:id', async (req, res) => {
     // If username is changing, check if the new username is already taken
     if (isUsernameChanging) {
       const existingUser = await User.findOne({ 
-        username: newUsername,
+        username: { $regex: new RegExp(`^${newUsername}$`, 'i') },
         _id: { $ne: userId } // Exclude current user from the check
       });
       

@@ -14,6 +14,21 @@ REACT_APP_TEMPERATURE=0.7
 
 # Feature Flags
 REACT_APP_ENABLE_AI_FEATURES=true
+
+# Backend Configuration
+# Database Configuration
+MONGO_URI=mongodb://localhost:27017/petconnect
+
+# JWT Configuration - IMPORTANT: Change this in production!
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-make-it-very-long-and-random-12345
+
+# Server Configuration
+PORT=5000
+```
+
+**Security Note:** In production, use a strong, randomly generated JWT_SECRET. You can generate one using:
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
 Replace `your-openai-api-key-here` with your actual OpenAI API key.

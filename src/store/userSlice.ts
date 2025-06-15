@@ -3,8 +3,10 @@ import { login as loginService, register as registerService, User as UserModel, 
 import { 
   setAuthToken, 
   removeAuthToken,
-  setStoredUser
+  setStoredUser,
+  initializeAuth
 } from '../services/authService';
+import apiClient from '../services/apiClient';
 
 // Types
 export type User = UserModel;
@@ -15,9 +17,11 @@ interface UserState {
   error: string | null;
 }
 
-// Initial state (no longer reading from localStorage)
+// Initialize state from localStorage
+const { user: storedUser } = initializeAuth();
+
 const initialState: UserState = {
-  currentUser: null,
+  currentUser: storedUser,
   isLoading: false,
   error: null,
 };
@@ -76,12 +80,43 @@ export const logout = createAsyncThunk(
   }
 );
 
-// Check auth thunk is now simpler (no localStorage checks)
+// Check auth thunk - verify stored token is still valid
 export const checkAuth = createAsyncThunk(
   'user/checkAuth',
   async (_, { rejectWithValue }) => {
-    // In our new implementation, this always returns null since we don't persist
-    return null;
+    try {
+      const { token, user } = initializeAuth();
+      
+      if (!token || !user) {
+        return null;
+      }
+      
+      // For now, just return the cached user without server verification
+      // This prevents logout on page reload due to network issues
+      // TODO: Implement proper token refresh mechanism
+      console.log('Using cached authentication:', { user: user.username, hasToken: !!token });
+      return user;
+      
+      // Uncomment below for server-side token verification
+      /*
+      try {
+        const response = await apiClient.post('/auth/verify-token');
+        return response.user || user;
+      } catch (verifyError) {
+        console.warn('Token verification failed:', verifyError);
+        // Only clear token if it's definitely invalid (401)
+        if ((verifyError as any)?.status === 401) {
+          removeAuthToken();
+          return null;
+        }
+        // For network errors, keep the user logged in
+        return user;
+      }
+      */
+    } catch (error: any) {
+      console.error('Auth initialization failed:', error);
+      return rejectWithValue(error.message || 'Authentication check failed');
+    }
   }
 );
 

@@ -27,7 +27,7 @@ const seedUsers = async () => {
       _id: '684c38a66e0a72eb81a6d61d',
       username: 'testuser1',
       email: 'test1@example.com',
-      passwordHash: passwordHash1,
+      password: passwordHash1,
       profilePic: 'https://res.cloudinary.com/dvf40qifz/image/upload/v1709737070/default_profile_pic.png',
     });
     await user1.save();
@@ -37,7 +37,7 @@ const seedUsers = async () => {
       _id: '684c38a66e0a72eb81a6d61f',
       username: 'testuser2',
       email: 'test2@example.com',
-      passwordHash: passwordHash2,
+      password: passwordHash2,
       profilePic: 'https://res.cloudinary.com/dvf40qifz/image/upload/v1709737070/default_profile_pic.png',
     });
     await user2.save();

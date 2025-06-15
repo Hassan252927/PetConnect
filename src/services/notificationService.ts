@@ -17,10 +17,13 @@ export interface Notification {
 // Get notifications for a user
 export const getNotifications = async (userID: string, page = 1, limit = 20): Promise<Notification[]> => {
   try {
+    console.log('Fetching notifications for user:', userID);
     const response = await apiClient.get(`/notifications/${userID}?page=${page}&limit=${limit}`);
+    console.log('Notifications response:', response.data);
     return response.data || [];
   } catch (error: any) {
     console.error('Error fetching notifications:', error);
+    console.error('Error details:', error.response?.data);
     if (error.response?.status === 404) {
       return []; // Return empty array if no notifications found
     }
@@ -31,10 +34,13 @@ export const getNotifications = async (userID: string, page = 1, limit = 20): Pr
 // Get unread notification count
 export const getUnreadCount = async (userID: string): Promise<number> => {
   try {
+    console.log('Fetching unread count for user:', userID);
     const response = await apiClient.get(`/notifications/${userID}/unread-count`);
+    console.log('Unread count response:', response.data);
     return response.data?.unreadCount || 0;
   } catch (error: any) {
     console.error('Error fetching unread count:', error);
+    console.error('Error details:', error.response?.data);
     if (error.response?.status === 404) {
       return 0; // Return 0 if no notifications found
     }

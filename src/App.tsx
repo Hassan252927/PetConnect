@@ -22,6 +22,7 @@ import EditPetPage from './pages/EditPetPage';
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AuthInitializer from './components/auth/AuthInitializer';
 import FloatingChatButton from './components/chat/FloatingChatButton';
 
 // PostActions wrapper component to get user data from Redux
@@ -38,8 +39,9 @@ function App() {
     <Provider store={store}>
       <ThemeProvider>
         <BrowserRouter>
-          <PostActionsWrapper>
-            <Routes>
+          <AuthInitializer>
+            <PostActionsWrapper>
+              <Routes>
               {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -57,11 +59,12 @@ function App() {
                 <Route path="/profile/:id" element={<ProfilePage />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
-            </Routes>
-            
-            {/* Global floating AI chat button */}
-            <FloatingChatButton />
-          </PostActionsWrapper>
+              </Routes>
+              
+              {/* Global floating AI chat button */}
+              <FloatingChatButton />
+            </PostActionsWrapper>
+          </AuthInitializer>
         </BrowserRouter>
       </ThemeProvider>
     </Provider>

@@ -173,14 +173,16 @@ router.post('/:id/like', async (req, res) => {
       // Like the post
       post.likes.push(userID);
       
-      // Create notification for all likes (including own posts)
-      const notification = new Notification({
-        userID: post.userID,
-        type: 'like',
-        senderID: userID,
-        postID: post._id
-      });
-      await notification.save();
+      // Create notification only if user is not liking their own post
+      if (post.userID.toString() !== userID) {
+        const notification = new Notification({
+          userID: post.userID,
+          type: 'like',
+          senderID: userID,
+          postID: post._id
+        });
+        await notification.save();
+      }
     }
 
     await post.save();
@@ -222,16 +224,18 @@ router.post('/:id/comment', async (req, res) => {
     post.commentsCount = post.comments.length;
     await post.save();
 
-    // Create notification for all comments (including own posts)
-    const notification = new Notification({
-      userID: post.userID,
-      type: 'comment',
-      senderID: req.body.userID,
-      postID: post._id,
-      commentID: newComment._id,
-      content: req.body.content.length > 30 ? `${req.body.content.substring(0, 30)}...` : req.body.content
-    });
-    await notification.save();
+    // Create notification only if user is not commenting on their own post
+    if (post.userID.toString() !== req.body.userID) {
+      const notification = new Notification({
+        userID: post.userID,
+        type: 'comment',
+        senderID: req.body.userID,
+        postID: post._id,
+        commentID: newComment._id,
+        content: req.body.content.length > 30 ? `${req.body.content.substring(0, 30)}...` : req.body.content
+      });
+      await notification.save();
+    }
 
     // Return the updated post with populated data
     const populatedPost = await Post.findById(post._id)

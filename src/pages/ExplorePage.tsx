@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { fetchFeedPosts } from '../store/postSlice';
 import Layout from '../components/layout/Layout';
-import PostCard from '../components/post/PostCard';
+import ExploreGrid from '../components/post/ExploreGrid';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel, { FilterOptions } from '../components/search/FilterPanel';
 import { ExtendedPost } from '../types/post';
@@ -64,9 +64,7 @@ const ExplorePage: React.FC = () => {
     setFilteredPosts(filtered);
   }, [feedPosts, searchQuery, activeFilters, activeTab]);
   
-  const handleViewPost = (post: typeof feedPosts[0]) => {
-    navigate(`/posts/${post._id}`);
-  };
+
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -89,9 +87,9 @@ const ExplorePage: React.FC = () => {
   
   return (
     <Layout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Explore PetConnect</h1>
-        <p className="text-gray-600 dark:text-gray-300">Discover amazing pet moments and connect with pet owners around the world</p>
+      <div className="mb-8 text-center md:text-left">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-2">Explore PetConnect</h1>
+        <p className="text-gray-600 dark:text-gray-300 text-lg">Discover amazing pet moments and connect with pet owners around the world</p>
       </div>
 
       {/* Popular Categories */}
@@ -240,67 +238,19 @@ const ExplorePage: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPosts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onViewPost={handleViewPost}
-            />
-          ))}
-        </div>
+        <ExploreGrid posts={filteredPosts} isLoading={isLoading} />
       )}
       
-      {/* Pagination */}
+      {/* Simple End Section */}
       {filteredPosts.length > 0 && (
-        <div className="mt-8 flex justify-center">
-          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-            <button
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-            >
-              <span className="sr-only">Previous</span>
-              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-            <button
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              1
-            </button>
-            <button
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary text-sm font-medium text-white"
-              aria-current="page"
-            >
-              2
-            </button>
-            <button
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              3
-            </button>
-            <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-              ...
+        <div className="mt-12 mb-8 text-center">
+          <div className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-full border border-primary/20">
+            <span className="text-2xl">🐾</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">
+              You've seen {filteredPosts.length} amazing posts!
             </span>
-            <button
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              8
-            </button>
-            <button
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              9
-            </button>
-            <button
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-            >
-              <span className="sr-only">Next</span>
-              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </nav>
+            <span className="text-2xl">✨</span>
+          </div>
         </div>
       )}
     </Layout>

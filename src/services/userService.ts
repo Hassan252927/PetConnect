@@ -55,7 +55,12 @@ export const register = (userData: RegisterRequest): Promise<AuthResponse> => {
  * @returns A promise that resolves to the auth response
  */
 export const login = (credentials: LoginRequest): Promise<AuthResponse> => {
-  return apiClient.post('/users/login', credentials);
+  // Transform email to identifier for backend compatibility
+  const loginData = {
+    identifier: credentials.email,
+    password: credentials.password
+  };
+  return apiClient.post('/users/login', loginData);
 };
 
 /**
