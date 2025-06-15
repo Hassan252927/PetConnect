@@ -42,6 +42,14 @@ const ProfilePage: React.FC = () => {
     hasChanged: false
   });
 
+  // Debug logging
+  useEffect(() => {
+    console.log('ProfilePage - Current user:', currentUser);
+    console.log('ProfilePage - User ID param:', id);
+    console.log('ProfilePage - Is own profile:', currentUser && id === currentUser._id);
+    console.log('ProfilePage - Saved posts:', savedPosts);
+  }, [currentUser, id, savedPosts]);
+
   const isOwnProfile = currentUser && id === currentUser._id;
 
   useEffect(() => {
@@ -70,7 +78,9 @@ const ProfilePage: React.FC = () => {
         
         // Fetch saved posts if it's the current user's profile
         if (currentUser && id === currentUser._id) {
-          dispatch(fetchSavedPosts(id));
+          console.log('ProfilePage - Fetching saved posts for user:', id);
+          const result = await dispatch(fetchSavedPosts(id)).unwrap();
+          console.log('ProfilePage - Saved posts fetch result:', result);
         }
       } catch (error) {
         console.error('Error fetching user:', error);

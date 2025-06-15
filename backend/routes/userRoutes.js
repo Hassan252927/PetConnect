@@ -520,21 +520,34 @@ router.delete('/:id/savedPosts/:postID', async (req, res) => {
 // Get saved posts for a user with populated data
 router.get('/:id/savedPosts', async (req, res) => {
   try {
-    console.log('Fetching saved posts for user:', req.params.id);
-    const user = await User.findById(req.params.id).populate({
-      path: 'savedPosts',
-      populate: [
-        { path: 'userID', select: 'username profilePic' },
-        { path: 'petID', select: 'name' }
-      ]
-    });
+    const userId = req.params.id;
+    console.log('Fetching saved posts for user:', userId);
     
-    if (!user) {
+    // First check if the user exists and has savedPosts
+    const userCheck = await User.findById(userId);
+    if (!userCheck) {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    console.log('Found saved posts:', user.savedPosts.length);
-    res.json(user.savedPosts);
+    console.log('User found:', userCheck.username);
+    console.log('User savedPosts array:', userCheck.savedPosts);
+    
+    if (!userCheck.savedPosts || userCheck.savedPosts.length === 0) {
+      console.log('No saved posts found for user');
+      return res.json([]);
+    }
+    
+    // Get the actual posts from the Post model
+    const savedPosts = await Post.find({
+      _id: { $in: userCheck.savedPosts }
+    });
+    
+    console.log('Found saved posts:', savedPosts.length);
+    if (savedPosts.length > 0) {
+      console.log('First saved post:', savedPosts[0]);
+    }
+    
+    res.json(savedPosts);
   } catch (err) {
     console.error('Error fetching saved posts:', err);
     res.status(500).json({ error: err.message });

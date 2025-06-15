@@ -196,7 +196,11 @@ export const getSavedPosts = async (userID: string): Promise<any[]> => {
   console.log('userService.getSavedPosts - Fetching saved posts for user:', userID);
   try {
     const response = await apiClient.get(`/users/${userID}/savedPosts`);
+    console.log('userService.getSavedPosts - API response status:', response.status);
     console.log('userService.getSavedPosts - Found saved posts:', response.data.length);
+    if (response.data.length > 0) {
+      console.log('userService.getSavedPosts - First post:', response.data[0]);
+    }
     return response.data;
   } catch (error) {
     console.error('userService.getSavedPosts - Error:', error);
